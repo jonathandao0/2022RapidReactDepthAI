@@ -18,7 +18,7 @@ root.addHandler(rotateHandler)
 root.setLevel(logging.INFO)
 root.info("Logging system initialized, kept in file {}...".format(logfile))
 
-MODEL_NAME = "rapidReact2022"
+MODEL_NAME = "2022RapidReact"
 NN_IMG_SIZE = 416
 DEBUG = os.getenv('DEBUG', 'true') not in ('false', '0')
 

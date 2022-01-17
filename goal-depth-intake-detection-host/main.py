@@ -34,6 +34,7 @@ class Main:
             log.info(f"{device.getMxId()} {device.state}")
 
         self.init_networktables()
+        self.nt_controls = NetworkTables.getTable("Controls")
 
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -54,8 +55,8 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }, "OAK-1_Intake": {
             'name': "OAK-1_Intake",
-            'id': "14442C1011043ED700",
-            # 'id': "14442C10C14F47D700",
+            # 'id': "14442C1011043ED700",
+            'id': "14442C1091398FD000",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port2),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
@@ -75,7 +76,7 @@ class Main:
 
         # edgeFrame = cv2.threshold(edgeFrame, 20, 255, cv2.THRESH_TOZERO)[1]
 
-        valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
+        valid_labels = ['upper_hub']
 
         nt_tab = self.device_list['OAK-D_Goal']['nt_tab']
 
@@ -94,18 +95,26 @@ class Main:
                     log.error("Error: Could not find target contour")
                     continue
 
-                angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
+                horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
+                vertical_angle_offset = (target_y - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
 
-                if abs(angle_offset) > 30:
+                if abs(horizontal_angle_offset) > 30:
                     log.info("Invalid angle offset. Setting it to 0")
                     nt_tab.putNumber("tv", 0)
-                    angle_offset = 0
+                    horizontal_angle_offset = 0
                 else:
-                    log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, angle_offset))
+                    log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, horizontal_angle_offset))
                     nt_tab.putNumber("tv", 1)
 
+                if abs(horizontal_angle_offset) > 30 and abs(vertical_angle_offset) > 30:
+                    log.info("Target not valid for distance measurements")
+                    nt_tab.putNumber("tg", 0)
+                else:
+                    nt_tab.putNumber("tg", 1)
+
                 nt_tab.putString("target_label", target_label)
-                nt_tab.putNumber("tx", angle_offset)
+                nt_tab.putNumber("tx", horizontal_angle_offset)
+                nt_tab.putNumber("ty", vertical_angle_offset)
                 nt_tab.putNumber("tz", bbox['depth_z'])
 
                 cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
@@ -116,7 +125,7 @@ class Main:
 
                 bbox['target_x'] = target_x
                 bbox['target_y'] = target_y
-                bbox['angle_offset'] = angle_offset
+                bbox['horizontal_angle_offset'] = horizontal_angle_offset
 
         fps = self.device_list['OAK-D_Goal']['fps_handler']
         fps.next_iter()
@@ -129,7 +138,14 @@ class Main:
     def parse_intake_frame(self, frame, edgeFrame, bboxes):
         edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
-        valid_labels = ['power_cell']
+        alliance_color = self.nt_controls.getString("Alliance", "Invalid")
+
+        if alliance_color == "Red":
+            valid_labels = ['red_cargo']
+        elif alliance_color == "Blue":
+            valid_labels = ['blue_cargo']
+        else:
+            valid_labels = ['red_cargo', 'blue_cargo']
 
         nt_tab = self.device_list['OAK-1_Intake']['nt_tab']
 
