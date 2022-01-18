@@ -8,3 +8,6 @@ depthai==2.14.1.0
 Pillow==9.0.0
 scipy~=1.7.1
 PyTurboJPEG==1.6.5
+
+imagezmq~=1.1.1
+Werkzeug~=2.0.2

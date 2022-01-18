@@ -11,11 +11,12 @@ import depthai as dai
 import socket
 
 from common.config import NN_IMG_SIZE, MODEL_NAME
+
+from imageZMQ.imageZMQ_sender import ImageZMQSender
 from pipelines import goal_edge_depth_detection, object_edge_detection
 import logging
 from common import target_finder
 
-from common.mjpeg_stream import MjpegStream
 from networktables.util import NetworkTables
 from common.utils import FPSHandler
 
@@ -65,8 +66,10 @@ class Main:
         self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline(MODEL_NAME)
         self.intake_pipeline, self.intake_labels = object_edge_detection.create_pipeline(MODEL_NAME)
 
-        self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
-        self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
+        # self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
+        # self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
+        self.oak_1_stream = ImageZMQSender()
+        log.info("Finished setting up server")
         # self.oak_d_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
         # self.oak_1_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
 
@@ -177,7 +180,7 @@ class Main:
         fps.next_iter()
         cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        self.oak_1_stream.send_frame(edgeFrame)
+        self.oak_1_stream.send_image(edgeFrame)
 
         return frame, edgeFrame, filtered_bboxes
 
