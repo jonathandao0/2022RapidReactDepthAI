@@ -82,6 +82,8 @@ def create_pipeline(model_name):
     # rgbControl.out.link(camRgb.inputControl)
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
+    detectionNetwork.passthrough.link(objectTracker.inputTrackerFrame)
+    detectionNetwork.passthrough.link(objectTracker.inputDetectionFrame)
     detectionNetwork.out.link(objectTracker.inputDetections)
 
     objectTracker.out.link(script.inputs['tracklets'])
@@ -89,7 +91,8 @@ def create_pipeline(model_name):
 
     with open("../pipelines/object_counter_script.py", "r") as f:
         s = f.read()
-        s = s.replace("COUNTER = {}", "COUNTER = { 'red_cargo': 0, 'blue_cargo': 0 }")
+        s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'red_cargo', 'blue_cargo' ]")
+        s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'red_cargo': 0, 'blue_cargo': 0 }")
         s = s.replace("THRESH_DIST_DELTA", "0.25")
         script.setScript(s)
 
@@ -116,6 +119,12 @@ def capture(device_info):
         # controlQueue = device.getInputQueue('rgbControl')
         # configQueue = device.getInputQueue('rgbCfg')
 
+        counters = {
+            'upper_hub': 0,
+            'lower_hub': 0,
+            'red_cargo': 0,
+            'blue_cargo': 0
+        }
         while True:
             # cfg = dai.CameraControl()
             # cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
@@ -133,10 +142,6 @@ def capture(device_info):
             if inDet is not None:
                 detections = inDet.detections
 
-            counters = {
-                'red_cargo': 0,
-                'blue_cargo': 0
-            }
             if outQueue.has():
                 jsonText = str(outQueue.get().getData(), 'utf-8')
                 counters = json.loads(jsonText)

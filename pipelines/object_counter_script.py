@@ -1,10 +1,11 @@
 import json
 data = {}
+LABELS = []
 COUNTER = {}
 
 
 def send():
-    b = Buffer(50)
+    b = Buffer(100)
     b.setData(json.dumps(COUNTER).encode('utf-8'))
     node.io['out'].send(b)
 
@@ -14,10 +15,13 @@ def tracklet_removed(tracklet, coords2):
     deltaX = coords2[0] - coords1[0]
     deltaY = coords2[1] - coords1[1]
 
-    if abs(deltaY) > THRESH_DIST_DELTA and 0 > deltaY:
-        COUNTER[t.label] += 1
+    if abs(deltaY) > THRESH_DIST_DELTA and 0 < deltaY:
+        labelStr = LABELS[t.label]
+        COUNTER[labelStr] += 1
         send()
         node.warn(f"Cargo detected")
+        node.warn("{}:{}".format(labelStr, COUNTER[labelStr]))
+
 
 def get_centroid(roi):
     x1 = roi.topLeft().x

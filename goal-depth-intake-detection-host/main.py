@@ -194,8 +194,8 @@ class Main:
         red_count = counters['red_cargo']
         blue_count = counters['blue_cargo']
 
-        cv2.putText(frame, "{:.1s}".format(str(red_count - red_offset)), (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 0, 0))
-        cv2.putText(frame, "{:.1s}".format(str(blue_count - blue_offset)), (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 255))
+        cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 30), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 255))
+        cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 28), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 0, 0))
 
         nt_tab.putNumber("red_count", red_count)
         nt_tab.putNumber("blue_count", blue_count)
