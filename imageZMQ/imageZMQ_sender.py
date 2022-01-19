@@ -14,12 +14,14 @@ class ImageZMQSender:
             # Send an image to the queue
             if self.image_to_send is not None:
                 self.sender.send_image(self.feedName, self.image_to_send)
-                time.sleep(1.0/self.FPS)
+                # time.sleep(1.0/self.FPS)
+                time.sleep(0.03)
 
     def send_image(self, image):
-        self.image_to_send = image
+        self.image_to_send = self.video_frame_handler.frame_to_send
 
-    def __init__(self, FEED_NAME='Raspberry Pi 4', HOSTNAME='localhost', HTTP_PORT=5555, FPS=30):
+    def __init__(self, VideoFrameHandler, FEED_NAME='Raspberry Pi 4', HOSTNAME='localhost', HTTP_PORT=5555, FPS=30):
+        self.video_frame_handler=VideoFrameHandler
         self.feedName = FEED_NAME
         self.FPS = FPS
         connection_address = 'tcp://{}:{}'.format(HOSTNAME, HTTP_PORT)

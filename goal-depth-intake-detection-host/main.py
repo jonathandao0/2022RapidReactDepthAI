@@ -13,7 +13,8 @@ import socket
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
 from imageZMQ.imageZMQ_sender import ImageZMQSender
-from pipelines import goal_edge_depth_detection, object_edge_detection
+from imageZMQ.video_frame_handler import VideoFrameHandler
+from pipelines import goal_edge_depth_detection, object_tracker
 import logging
 from common import target_finder
 
@@ -28,6 +29,11 @@ log = logging.getLogger(__name__)
 
 
 class Main:
+    threadDict = {
+        "OAK-D_Goal": None,
+        "OAK-1_Intake": None,
+        "VideoFrame": None
+    }
 
     def __init__(self):
         log.info("Connected Devices:")
@@ -64,12 +70,11 @@ class Main:
         }}
 
         self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline(MODEL_NAME)
-        self.intake_pipeline, self.intake_labels = object_edge_detection.create_pipeline(MODEL_NAME)
+        self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
 
         # self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
         # self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
-        self.oak_1_stream = ImageZMQSender()
-        log.info("Finished setting up server")
+        # self.oak_1_stream = ImageZMQSender()
         # self.oak_d_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
         # self.oak_1_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
 
@@ -134,28 +139,34 @@ class Main:
         fps.next_iter()
         cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        self.oak_d_stream.send_frame(edgeFrame)
+        # self.video_frame_handler.send_left_frame(edgeFrame)
 
         return frame, edgeFrame, bboxes
 
-    def parse_intake_frame(self, frame, edgeFrame, bboxes):
-        edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
+    def parse_intake_frame(self, frame, bboxes, counters):
+        # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
         alliance_color = self.nt_controls.getString("Alliance", "Invalid")
 
         if alliance_color == "Red":
             valid_labels = ['red_cargo']
+            null_labels = ['blue_cargo']
         elif alliance_color == "Blue":
             valid_labels = ['blue_cargo']
+            null_labels = ['red_cargo']
         else:
             valid_labels = ['red_cargo', 'blue_cargo']
+            null_labels = []
 
         nt_tab = self.device_list['OAK-1_Intake']['nt_tab']
 
         filtered_bboxes = []
+        null_bboxes = []
         for bbox in bboxes:
             if self.intake_labels[bbox['label']] in valid_labels:
                 filtered_bboxes.append(bbox)
+            if self.intake_labels[bbox['label']] in null_labels:
+                null_bboxes.append(bbox)
 
         filtered_bboxes.sort(key=operator.itemgetter('size'), reverse=True)
 
@@ -168,21 +179,34 @@ class Main:
             target_angles = []
             for bbox in filtered_bboxes:
                 angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
-
-                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 255, 255), 2)
+                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
 
                 target_angles.append(angle_offset)
                 bbox['angle_offset'] = angle_offset
 
             nt_tab.putNumberArray("ta", target_angles)
 
+            for bbox in null_bboxes:
+                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 0, 0), 2)
+
+        red_offset = nt_tab.getNumber("red_counter_offset", 0)
+        blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
+        red_count = counters['red_cargo']
+        blue_count = counters['blue_cargo']
+
+        cv2.putText(frame, "{:.1s}".format(str(red_count - red_offset)), (0, 40), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 0, 0))
+        cv2.putText(frame, "{:.1s}".format(str(blue_count - blue_offset)), (0, 100), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 255))
+
+        nt_tab.putNumber("red_count", red_count)
+        nt_tab.putNumber("blue_count", blue_count)
+
         fps = self.device_list['OAK-1_Intake']['fps_handler']
         fps.next_iter()
-        cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        self.oak_1_stream.send_image(edgeFrame)
+        # self.video_frame_handler.send_right_frame(frame)
 
-        return frame, edgeFrame, filtered_bboxes
+        return frame, filtered_bboxes, counters
 
     def init_networktables(self):
         NetworkTables.startClientTeam(4201)
@@ -206,31 +230,34 @@ class Main:
     def run(self):
         log.info("Setup complete, parsing frames...")
 
-        threadlist = []
-        try:
-            found_1, device_info_1 = dai.Device.getDeviceByMxId(self.device_list['OAK-D_Goal']['id'])
-            self.device_list['OAK-D_Goal']['nt_tab'].putBoolean("OAK-D_Goal Status", found_1)
+        while True:
+            try:
+                # if self.threadDict['OAK-D_Goal'] is None or not self.threadDict['OAK-D_Goal'].is_alive():
+                #     found, device_info = dai.Device.getDeviceByMxId(self.device_list['OAK-D_Goal']['id'])
+                #     self.device_list['OAK-D_Goal']['nt_tab'].putBoolean("OAK-D_Goal Status", found)
+                #
+                #     if found:
+                #         th = threading.Thread(target=self.run_goal_detection, args=(device_info,))
+                #         th.start()
+                #         self.threadDict['OAK-D_Goal'] = th
 
-            if found_1:
-                th1 = threading.Thread(target=self.run_goal_detection, args=(device_info_1,))
-                th1.start()
-                threadlist.append(th1)
+                if self.threadDict['OAK-1_Intake'] is None or not self.threadDict['OAK-1_Intake'].is_alive():
+                    found, device_info = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
+                    self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found)
 
-            found_2, device_info_2 = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
-            self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found_2)
+                    if found:
+                        th = threading.Thread(target=self.run_intake_detection, args=(device_info,))
+                        th.start()
+                        self.threadDict['OAK-1_Intake'] = th
 
-            if found_2:
-                th2 = threading.Thread(target=self.run_intake_detection, args=(device_info_2,))
-                th2.start()
-                threadlist.append(th2)
+                # if self.threadDict['VideoFrame'] is None or not self.threadDict['VideoFrame'].is_alive():
+                #     th = threading.Thread(target=self.video_frame_handler.run)
+                #     th.start()
+                #     self.threadDict['VideoFrame'] = th
 
-            while True:
-                for t in threadlist:
-                    if not t.is_alive():
-                        break
-                sleep(10)
-        finally:
-            log.info("Exiting Program...")
+                sleep(1)
+            except Exception as e:
+                log.error("Exception {}".format(e))
 
     def run_goal_detection(self, device_info):
         self.device_list['OAK-D_Goal']['nt_tab'].putString("OAK-D_Goal Stream", self.device_list['OAK-D_Goal']['stream_address'])
@@ -239,8 +266,8 @@ class Main:
 
     def run_intake_detection(self, device_info):
         self.device_list['OAK-1_Intake']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1_Intake']['stream_address'])
-        for frame, edgeFrame, bboxes in object_edge_detection.capture(device_info):
-            self.parse_intake_frame(frame, edgeFrame, bboxes)
+        for frame, bboxes, counters in object_tracker.capture(device_info):
+            self.parse_intake_frame(frame, bboxes, counters)
 
 
 class MainDebug(Main):
@@ -282,8 +309,8 @@ class MainDebug(Main):
         if key == ord("q"):
             raise StopIteration()
 
-    def parse_intake_frame(self, frame, edgeFrame,  bboxes):
-        frame, edgeFrame, bboxes = super().parse_intake_frame(frame, edgeFrame, bboxes)
+    def parse_intake_frame(self, frame,  bboxes, counters):
+        frame, bboxes, counters = super().parse_intake_frame(frame, bboxes, counters)
 
         for i, bbox in enumerate(bboxes):
             angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
@@ -302,7 +329,7 @@ class MainDebug(Main):
             cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        cv2.imshow("OAK-1 Intake Edge", edgeFrame)
+        # cv2.imshow("OAK-1 Intake Edge", edgeFrame)
         cv2.imshow("OAK-1 Intake", frame)
 
         key = cv2.waitKey(1)
