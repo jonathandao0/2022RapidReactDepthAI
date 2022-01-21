@@ -10,6 +10,7 @@ import cv2
 import depthai as dai
 import socket
 
+from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
 from imageZMQ.imageZMQ_sender import ImageZMQSender
@@ -74,9 +75,8 @@ class Main:
 
         # self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
         # self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
-        # self.oak_1_stream = ImageZMQSender()
-        # self.oak_d_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
-        # self.oak_1_stream = CsCoreStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
+        self.oak_d_stream = ImageZMQClient("camera 1", 5809)
+        self.oak_1_stream = ImageZMQClient("camera 2", 5809)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
         kernel = np.ones((3, 3), np.uint8)
@@ -139,7 +139,7 @@ class Main:
         fps.next_iter()
         cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        # self.video_frame_handler.send_left_frame(edgeFrame)
+        self.oak_d_stream.send_frame(frame)
 
         return frame, edgeFrame, bboxes
 
@@ -204,7 +204,7 @@ class Main:
         fps.next_iter()
         cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        # self.video_frame_handler.send_right_frame(frame)
+        self.oak_1_stream.send_frame(frame)
 
         return frame, filtered_bboxes, counters
 

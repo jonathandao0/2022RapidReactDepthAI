@@ -11,3 +11,5 @@ PyTurboJPEG==1.6.5
 
 imagezmq~=1.1.1
 Werkzeug~=2.0.2
+simplejpeg~=1.6.3
+Flask~=2.0.2
