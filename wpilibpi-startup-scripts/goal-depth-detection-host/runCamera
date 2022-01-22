@@ -1,0 +1,9 @@
+#!/bin/sh
+### TYPE: upload-python
+echo "Waiting 5 seconds..."
+sleep 5
+export PYTHONUNBUFFERED=1
+export PYTHONPATH=/home/pi/depthai-frc
+cd /home/pi/2022RapidReactDepthAI/
+$(exec /usr/bin/python3 FlaskStream/video_stream_app.py)
+exec /usr/bin/python3 goal-depth-intake-detection-host/main.py
