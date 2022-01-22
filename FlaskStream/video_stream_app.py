@@ -5,9 +5,7 @@ from flask import Flask, render_template, Response
 import cv2
 import simplejpeg
 
-
 app = Flask(__name__)
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', dest='hostname', default='localhost', help='Set hostname (default: localhost)')
@@ -16,6 +14,7 @@ parser.add_argument('-d', dest='debug', action="store_true", default=False, help
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
+
 
 @app.route('/')
 def index():
