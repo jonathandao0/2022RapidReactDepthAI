@@ -1,6 +1,6 @@
 imutils==0.5.4
 concurrent-log-handler==0.9.19
-opencv-python==4.5.5.62
+opencv-python<4.3
 blobconverter==1.2.8
 pynetworktables==2021.0.0
 numpy==1.21.5

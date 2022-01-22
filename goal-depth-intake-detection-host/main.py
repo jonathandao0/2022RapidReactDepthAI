@@ -56,6 +56,7 @@ class Main:
         self.device_list = {"OAK-D_Goal": {
             'name': "OAK-D_Goal",
             'id': "184430105169091300",
+            # 'id': "14442C1091398FD000",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port1),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
@@ -88,7 +89,7 @@ class Main:
                 if target_label not in valid_labels:
                     continue
 
-                depthFrame, target_x, target_y = target_finder.find_largest_contour(depthFrame, bbox)
+                frame, depthFrame, target_x, target_y = target_finder.findDepthTarget(frame, depthFrame, bbox)
 
                 if target_x == -999 or target_y == -999:
                     log.error("Error: Could not find target contour")
@@ -116,11 +117,11 @@ class Main:
                 nt_tab.putNumber("ty", vertical_angle_offset)
                 nt_tab.putNumber("tz", bbox['depth_z'])
 
-                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (255, 255, 255), 2)
-
-                cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
-                           thickness=-1)
+                # cv2.rectangle(depthFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                #               (255, 255, 255), 2)
+                #
+                # cv2.circle(depthFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
+                #            thickness=-1)
 
                 bbox['target_x'] = target_x
                 bbox['target_y'] = target_y
@@ -128,7 +129,7 @@ class Main:
 
         fps = self.device_list['OAK-D_Goal']['fps_handler']
         fps.next_iter()
-        cv2.putText(depthFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         self.oak_d_stream.send_frame(frame)
 
@@ -180,20 +181,22 @@ class Main:
             for bbox in null_bboxes:
                 cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 0, 0), 2)
 
+        cv2.rectangle(frame, (0, 0), (NN_IMG_SIZE, 35),  (0, 0, 0), -1)
+
         red_offset = nt_tab.getNumber("red_counter_offset", 0)
         blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
         red_count = counters['red_cargo']
         blue_count = counters['blue_cargo']
 
-        cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 30), cv2.FONT_HERSHEY_TRIPLEX, 1, (0, 0, 255))
-        cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 28), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 0, 0))
+        cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255))
+        cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 28), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0))
 
         nt_tab.putNumber("red_count", red_count)
         nt_tab.putNumber("blue_count", blue_count)
 
         fps = self.device_list['OAK-1_Intake']['fps_handler']
         fps.next_iter()
-        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
 
         self.oak_1_stream.send_frame(frame)
 
@@ -232,14 +235,14 @@ class Main:
                         th1.start()
                         self.threadDict['OAK-D_Goal'] = th1
 
-                # if self.threadDict['OAK-1_Intake'] is None or not self.threadDict['OAK-1_Intake'].is_alive():
-                #     found2, device_info2 = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
-                #     self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found2)
-                #
-                #     if found2:
-                #         th2 = threading.Thread(target=self.run_intake_detection, args=(device_info2,))
-                #         th2.start()
-                #         self.threadDict['OAK-1_Intake'] = th2
+                if self.threadDict['OAK-1_Intake'] is None or not self.threadDict['OAK-1_Intake'].is_alive():
+                    found2, device_info2 = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
+                    self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found2)
+
+                    if found2:
+                        th2 = threading.Thread(target=self.run_intake_detection, args=(device_info2,))
+                        th2.start()
+                        self.threadDict['OAK-1_Intake'] = th2
 
                 sleep(1)
             except Exception as e:

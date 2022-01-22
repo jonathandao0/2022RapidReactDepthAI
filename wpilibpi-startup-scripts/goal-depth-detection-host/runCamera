@@ -4,6 +4,8 @@ echo "Waiting 5 seconds..."
 sleep 5
 export PYTHONUNBUFFERED=1
 export PYTHONPATH=/home/pi/2022RapidReactDepthAI
+pkill -f video_stream_app
+cd /home/pi/2022RapidReactDepthAI/FlaskStream
+exec nohup /usr/bin/python3 video_stream_app.py -q 10 &
 cd /home/pi/2022RapidReactDepthAI/
-exec nohup /usr/bin/python3 FlaskStream/video_stream_app.py &
 exec /usr/bin/python3 goal-depth-intake-detection-host/main.py

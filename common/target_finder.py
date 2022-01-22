@@ -105,12 +105,28 @@ def find_target_center(edgeFrame, bbox):
         return 9999, 0, 0
 
 
-# def parse_goal_frame(frame, bbox):
-#     for bbox in bboxes:
-#         if bbox['label']
-#
-#     return results
-#
-#
-# def stream_frame():
-#     pass
+# To find the 2022 Goal, we take the depth(disparity) map of the current frame from our camera. We then threshold that
+# to isolate the depth readings to correspond to our target. From here, we assume the threshold returns the shape of our
+# target, so we use that as a contour for detecting the center of the target. We use this method instead of the raw ML
+# detections to avoid issues where the bounding box of the ML detection doesn't corespond to the actual shape of the
+# goal
+def findDepthTarget(frame, depthFrame, bbox):
+    targetDepth = bbox['depth_y']
+    lowerThresh = targetDepth * 0.7
+    upperThresh = targetDepth * 1.3
+    thresh = cv2.threshold(depthFrame[bbox['y_min']:bbox['y_max'], bbox['x_min']:bbox['x_max']], lowerThresh, upperThresh, cv2.THRESH_BINARY)[1]
+    res = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours = res[-2]
+    # contours = res[0] if len(res) == 2 else res[1]
+    if len(contours) > 0:
+        largest_contour = max(contours, key=cv2.contourArea)
+
+        result = np.zeros_like(depthFrame)
+
+        rect = cv2.minAreaRect(largest_contour)
+        center, _, _ = rect
+        center_x, center_y = center
+
+        depthFrame = cv2.bitwise_or(depthFrame, result)
+
+    return frame, depthFrame, center_x + bbox['x_min'], center_y + bbox['y_min']

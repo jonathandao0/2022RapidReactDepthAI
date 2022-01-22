@@ -19,7 +19,8 @@ except:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', dest='hostname', default=ip_address, help='Set hostname (default: localhost)')
-parser.add_argument('-p', dest='port', default=5802, type=int, help='Set port (default 5802)')
+parser.add_argument('-p', dest='port', default=5802, type=int, help='Set port (default: 5802)')
+parser.add_argument('-q', dest='quality', type=int, default=100, help='Set jpeg quality (default: 100). Lower this to reduce bandwidth cost')
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
 args = parser.parse_args()
 
@@ -33,6 +34,7 @@ def index():
 
 
 def gen(camera_stream, feed_type, device):
+    global quality
     """Video streaming generator function."""
     unique_name = (feed_type, device)
 
@@ -41,7 +43,7 @@ def gen(camera_stream, feed_type, device):
         if frame is None:
             break
 
-        frame = simplejpeg.encode_jpeg(frame, quality=100, colorspace='BGR', fastdct=True)
+        frame = simplejpeg.encode_jpeg(frame, quality=quality, colorspace='BGR', fastdct=True)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -56,8 +58,12 @@ def video_feed(feed_type, device):
 
 
 if __name__ == '__main__':
+    global quality
     hostname = args.hostname
     port = args.port
     debug = args.debug
+    quality = args.quality
+
+    log.info("Starting Flask app at {}:{}".format(hostname, port))
 
     app.run(host=hostname, port=port, debug=debug, threaded=True)
