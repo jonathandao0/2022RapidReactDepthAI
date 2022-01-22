@@ -5,7 +5,7 @@ COUNTER = {}
 
 
 def send():
-    b = Buffer(100)
+    b = Buffer(80)
     b.setData(json.dumps(COUNTER).encode('utf-8'))
     node.io['out'].send(b)
 

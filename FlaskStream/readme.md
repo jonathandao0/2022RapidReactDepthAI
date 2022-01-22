@@ -1,1 +1,1 @@
-This code is mainly based off of this repo: https://gitee.com/huzhuhua/Flask-Multi-Camera-Streaming-With-YOLOv4-and-Deep-SORT/tree/master
+This Flask video streaming code is mainly based off of this repo: https://gitee.com/huzhuhua/Flask-Multi-Camera-Streaming-With-YOLOv4-and-Deep-SORT

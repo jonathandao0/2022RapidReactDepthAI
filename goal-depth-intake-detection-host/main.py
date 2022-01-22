@@ -13,8 +13,6 @@ import socket
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from imageZMQ.imageZMQ_sender import ImageZMQSender
-from imageZMQ.video_frame_handler import VideoFrameHandler
 from pipelines import goal_edge_depth_detection, object_tracker
 import logging
 from common import target_finder
@@ -63,8 +61,7 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }, "OAK-1_Intake": {
             'name': "OAK-1_Intake",
-            # 'id': "14442C1011043ED700",
-            'id': "14442C1091398FD000",
+            'id': "14442C10C14F47D700",
             'fps_handler': FPSHandler(),
             'stream_address': "{}:{}".format(ip_address, port2),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
@@ -73,9 +70,7 @@ class Main:
         self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline(MODEL_NAME)
         self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
 
-        # self.oak_d_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port1, colorspace='BW', QUALITY=10)
-        # self.oak_1_stream = MjpegStream(IP_ADDRESS=ip_address, HTTP_PORT=port2, colorspace='BW', QUALITY=10)
-        self.oak_d_stream = ImageZMQClient("camera 1", 5809)
+        self.oak_d_stream = ImageZMQClient("camera 1", 5808)
         self.oak_1_stream = ImageZMQClient("camera 2", 5809)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
@@ -97,14 +92,14 @@ class Main:
                 if target_label not in valid_labels:
                     continue
 
-                edgeFrame, target_x, target_y = target_finder.find_largest_hexagon_contour(edgeFrame, bbox)
+                edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
                 if target_x == -999 or target_y == -999:
                     log.error("Error: Could not find target contour")
                     continue
 
                 horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
-                vertical_angle_offset = (target_y - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1080
+                vertical_angle_offset = (target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 1080
 
                 if abs(horizontal_angle_offset) > 30:
                     log.info("Invalid angle offset. Setting it to 0")
@@ -233,27 +228,22 @@ class Main:
         while True:
             try:
                 # if self.threadDict['OAK-D_Goal'] is None or not self.threadDict['OAK-D_Goal'].is_alive():
-                #     found, device_info = dai.Device.getDeviceByMxId(self.device_list['OAK-D_Goal']['id'])
-                #     self.device_list['OAK-D_Goal']['nt_tab'].putBoolean("OAK-D_Goal Status", found)
+                #     found1, device_info1 = dai.Device.getDeviceByMxId(self.device_list['OAK-D_Goal']['id'])
+                #     self.device_list['OAK-D_Goal']['nt_tab'].putBoolean("OAK-D_Goal Status", found1)
                 #
-                #     if found:
-                #         th = threading.Thread(target=self.run_goal_detection, args=(device_info,))
-                #         th.start()
-                #         self.threadDict['OAK-D_Goal'] = th
+                #     if found1:
+                #         th1 = threading.Thread(target=self.run_goal_detection, args=(device_info1,))
+                #         th1.start()
+                #         self.threadDict['OAK-D_Goal'] = th1
 
                 if self.threadDict['OAK-1_Intake'] is None or not self.threadDict['OAK-1_Intake'].is_alive():
-                    found, device_info = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
-                    self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found)
+                    found2, device_info2 = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
+                    self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found2)
 
-                    if found:
-                        th = threading.Thread(target=self.run_intake_detection, args=(device_info,))
-                        th.start()
-                        self.threadDict['OAK-1_Intake'] = th
-
-                # if self.threadDict['VideoFrame'] is None or not self.threadDict['VideoFrame'].is_alive():
-                #     th = threading.Thread(target=self.video_frame_handler.run)
-                #     th.start()
-                #     self.threadDict['VideoFrame'] = th
+                    if found2:
+                        th2 = threading.Thread(target=self.run_intake_detection, args=(device_info2,))
+                        th2.start()
+                        self.threadDict['OAK-1_Intake'] = th2
 
                 sleep(1)
             except Exception as e:
@@ -277,7 +267,7 @@ class MainDebug(Main):
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
         frame, edgeFrame, bboxes = super().parse_goal_frame(frame, edgeFrame, bboxes)
-        valid_labels = ['red_upper_power_port', 'blue_upper_power_port']
+        valid_labels = ['upper_hub']
 
         for bbox in bboxes:
             target_label = self.goal_labels[bbox['label']]
