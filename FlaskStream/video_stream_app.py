@@ -7,8 +7,6 @@ from flask import Flask, render_template, Response
 
 import simplejpeg
 
-app = Flask(__name__)
-
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
@@ -25,6 +23,8 @@ parser.add_argument('-d', dest='debug', action="store_true", default=False, help
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
+
+app = Flask(__name__)
 
 
 @app.route('/')
