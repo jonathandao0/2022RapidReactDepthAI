@@ -89,7 +89,7 @@ def create_pipeline(model_name):
     objectTracker.out.link(script.inputs['tracklets'])
     script.outputs['out'].link(trackerOut.input)
 
-    with open("../pipelines/object_counter_script.py", "r") as f:
+    with open(Path(__file__).parent.parent / Path(f"pipelines/") / "object_counter_script.py", "r") as f:
         s = f.read()
         s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'red_cargo', 'blue_cargo' ]")
         s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'red_cargo': 0, 'blue_cargo': 0 }")

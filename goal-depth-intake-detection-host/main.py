@@ -13,7 +13,7 @@ import socket
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from pipelines import goal_edge_depth_detection, object_tracker, goal_tracker
+from pipelines import goal_tracker, object_tracker
 import logging
 from common import target_finder
 

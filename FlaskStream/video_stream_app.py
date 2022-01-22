@@ -1,21 +1,30 @@
 import argparse
 import logging
 from importlib import import_module
-from flask import Flask, render_template, Response
-import cv2
-import simplejpeg
+import socket
 
+from flask import Flask, render_template, Response
+
+import simplejpeg
 
 app = Flask(__name__)
 
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+
+    ip_address = s.getsockname()[0]
+except:
+    ip_address = '10.42.1.100'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i', dest='hostname', default='localhost', help='Set hostname (default: localhost)')
+parser.add_argument('-i', dest='hostname', default=ip_address, help='Set hostname (default: localhost)')
 parser.add_argument('-p', dest='port', default=5802, type=int, help='Set port (default 5802)')
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
+
 
 @app.route('/')
 def index():
