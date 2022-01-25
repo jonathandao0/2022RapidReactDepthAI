@@ -13,7 +13,7 @@ import socket
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from pipelines import goal_tracker, object_tracker
+from pipelines import goal_edge_depth_detection, object_tracker
 import logging
 from common import target_finder
 
@@ -31,7 +31,6 @@ class Main:
     threadDict = {
         "OAK-D_Goal": None,
         "OAK-1_Intake": None,
-        "VideoFrame": None
     }
 
     def __init__(self):
@@ -68,14 +67,13 @@ class Main:
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
         }}
 
-        self.goal_pipeline, self.goal_labels = goal_tracker.create_pipeline(MODEL_NAME)
+        self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline(MODEL_NAME)
         self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
 
         self.oak_d_stream = ImageZMQClient("camera 1", 5808)
         self.oak_1_stream = ImageZMQClient("camera 2", 5809)
 
-    def parse_goal_frame(self, frame, depthFrame, bboxes):
-
+    def parse_goal_frame(self, frame, edgeFrame, bboxes):
         valid_labels = ['upper_hub']
 
         nt_tab = self.device_list['OAK-D_Goal']['nt_tab']
@@ -89,7 +87,7 @@ class Main:
                 if target_label not in valid_labels:
                     continue
 
-                frame, depthFrame, target_x, target_y = target_finder.findDepthTarget(frame, depthFrame, bbox)
+                edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
                 if target_x == -999 or target_y == -999:
                     log.error("Error: Could not find target contour")
@@ -117,10 +115,10 @@ class Main:
                 nt_tab.putNumber("ty", vertical_angle_offset)
                 nt_tab.putNumber("tz", bbox['depth_z'])
 
-                # cv2.rectangle(depthFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                #               (255, 255, 255), 2)
-                #
-                # cv2.circle(depthFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
+                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                              (255, 255, 255), 2)
+
+                # cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
                 #            thickness=-1)
 
                 bbox['target_x'] = target_x
@@ -133,7 +131,7 @@ class Main:
 
         self.oak_d_stream.send_frame(frame)
 
-        return frame, depthFrame, bboxes
+        return frame, edgeFrame, bboxes
 
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
@@ -235,14 +233,14 @@ class Main:
                         th1.start()
                         self.threadDict['OAK-D_Goal'] = th1
 
-                if self.threadDict['OAK-1_Intake'] is None or not self.threadDict['OAK-1_Intake'].is_alive():
-                    found2, device_info2 = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
-                    self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found2)
-
-                    if found2:
-                        th2 = threading.Thread(target=self.run_intake_detection, args=(device_info2,))
-                        th2.start()
-                        self.threadDict['OAK-1_Intake'] = th2
+                # if self.threadDict['OAK-1_Intake'] is None or not self.threadDict['OAK-1_Intake'].is_alive():
+                #     found2, device_info2 = dai.Device.getDeviceByMxId(self.device_list['OAK-1_Intake']['id'])
+                #     self.device_list['OAK-1_Intake']['nt_tab'].putBoolean("OAK-1_Intake Status", found2)
+                #
+                #     if found2:
+                #         th2 = threading.Thread(target=self.run_intake_detection, args=(device_info2,))
+                #         th2.start()
+                #         self.threadDict['OAK-1_Intake'] = th2
 
                 sleep(1)
             except Exception as e:
@@ -250,8 +248,8 @@ class Main:
 
     def run_goal_detection(self, device_info):
         self.device_list['OAK-D_Goal']['nt_tab'].putString("OAK-D_Goal Stream", self.device_list['OAK-D_Goal']['stream_address'])
-        for frame, depthFrame, bboxes in goal_tracker.capture(device_info):
-            self.parse_goal_frame(frame, depthFrame, bboxes)
+        for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device_info):
+            self.parse_goal_frame(frame, edgeFrame, bboxes)
 
     def run_intake_detection(self, device_info):
         self.device_list['OAK-1_Intake']['nt_tab'].putString("OAK-1 Stream", self.device_list['OAK-1_Intake']['stream_address'])
@@ -264,8 +262,8 @@ class MainDebug(Main):
     def __init__(self):
         super().__init__()
 
-    def parse_goal_frame(self, frame, depthFrame, bboxes):
-        frame, depthFrame, bboxes = super().parse_goal_frame(frame, depthFrame, bboxes)
+    def parse_goal_frame(self, frame, edgeFrame, bboxes):
+        frame, edgeFrame, bboxes = super().parse_goal_frame(frame, edgeFrame, bboxes)
         valid_labels = ['upper_hub']
 
         for bbox in bboxes:
@@ -277,20 +275,20 @@ class MainDebug(Main):
             target_x = bbox['target_x'] if 'target_x' in bbox else 0
             angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
 
-            cv2.putText(depthFrame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
+            cv2.putText(edgeFrame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(depthFrame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+            cv2.putText(edgeFrame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(depthFrame, "z: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 70),
+            cv2.putText(edgeFrame, "z: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 70),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(depthFrame, "angle: {}".format(round(angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 90),
+            cv2.putText(edgeFrame, "angle: {}".format(round(angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(depthFrame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
+            cv2.putText(edgeFrame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(depthFrame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 130),
+            cv2.putText(edgeFrame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 130),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        cv2.imshow("OAK-D Goal Depth", depthFrame)
+        cv2.imshow("OAK-D Goal Depth", edgeFrame)
         cv2.imshow("OAK-D Goal ", frame)
 
         key = cv2.waitKey(1)

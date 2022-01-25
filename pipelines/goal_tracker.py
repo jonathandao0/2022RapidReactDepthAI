@@ -104,7 +104,6 @@ def capture(device_info):
         depthQueue = device.getOutputQueue("depth", 8, False)
 
         while True:
-            cfg = dai.CameraControl()
             # cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
             # cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
             # cfg.setAutoExposureLock(True)

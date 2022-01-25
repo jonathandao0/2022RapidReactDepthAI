@@ -111,13 +111,16 @@ def find_target_center(edgeFrame, bbox):
 # detections to avoid issues where the bounding box of the ML detection doesn't corespond to the actual shape of the
 # goal
 def findDepthTarget(frame, depthFrame, bbox):
-    targetDepth = bbox['depth_y']
-    lowerThresh = targetDepth * 0.7
-    upperThresh = targetDepth * 1.3
-    thresh = cv2.threshold(depthFrame[bbox['y_min']:bbox['y_max'], bbox['x_min']:bbox['x_max']], lowerThresh, upperThresh, cv2.THRESH_BINARY)[1]
+    targetDepth = np.average(depthFrame[bbox['y_min']:bbox['y_max'], bbox['x_min']:bbox['x_max']])
+    lowerThresh = targetDepth * 0.9
+    upperThresh = targetDepth * 1.1
+    thresh = cv2.threshold(depthFrame, lowerThresh, upperThresh, cv2.THRESH_BINARY)[1]
     res = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contours = res[-2]
     # contours = res[0] if len(res) == 2 else res[1]
+
+    center_x = 0
+    center_y = 0
     if len(contours) > 0:
         largest_contour = max(contours, key=cv2.contourArea)
 
