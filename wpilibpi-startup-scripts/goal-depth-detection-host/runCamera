@@ -8,7 +8,7 @@ pkill -f intake_host
 pkill -f goal_host
 pkill -f video_stream_app
 cd /home/pi/2022RapidReactDepthAI/FlaskStream
-exec nohup /usr/bin/python3 video_stream_app.py -q 10 &
+exec nohup /usr/bin/python3 video_stream_app.py -q 20 &
 cd /home/pi/2022RapidReactDepthAI/
 exec nohup /usr/bin/python3 goal-depth-intake-detection-host/intake_host.py &
 exec /usr/bin/python3 goal-depth-intake-detection-host/goal_host.py

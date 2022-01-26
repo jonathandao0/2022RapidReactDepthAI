@@ -43,7 +43,7 @@ def gen(camera_stream, feed_type, device):
         if frame is None:
             break
 
-        frame = simplejpeg.encode_jpeg(frame, quality=quality, colorspace='BGR', fastdct=True)
+        frame = simplejpeg.encode_jpeg(frame, quality=quality, colorspace='BGR', colorsubsampling='420', fastdct=True)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
