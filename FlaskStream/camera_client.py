@@ -1,6 +1,6 @@
 import logging
 import time
-from multiprocessing import Process
+import threading
 
 import imagezmq
 import zmq
@@ -17,9 +17,9 @@ class ImageZMQClient:
         self.sender = self.init_sender(self.port)
         self.fps_limit = fps_limit
 
-        # p = Process(target=self.run)
-        # p.start()
-        # p.join()
+        p = threading.Thread(target=self.run)
+        p.daemon = True
+        p.start()
 
     def init_sender(self, port):
         sender = imagezmq.ImageSender(connect_to='tcp://localhost:{}'.format(port))
@@ -34,19 +34,19 @@ class ImageZMQClient:
 
     def send_frame(self, frame):
         self.frame_to_send = frame
-    #
-    # def run(self):
-        # while True:
-        if self.frame_to_send is not None:
-            start_time = time.time()
 
-            try:
-                reply = self.sender.send_image(self.camera_id, self.frame_to_send)
-            except (zmq.ZMQError, zmq.ContextTerminated, zmq.Again):
-                self.sender.close()
-                log.debug('Restarting ImageSender.')
-                self.sender = self.init_sender(self.port)
+    def run(self):
+        while True:
+            if self.frame_to_send is not None:
+                start_time = time.time()
 
-            end_time = time.time()
+                try:
+                    reply = self.sender.send_image(self.camera_id, self.frame_to_send)
+                except (zmq.ZMQError, zmq.ContextTerminated, zmq.Again):
+                    self.sender.close()
+                    log.debug('Restarting ImageSender.')
+                    self.sender = self.init_sender(self.port)
 
-                # time.sleep(max(1./self.fps_limit - (end_time-start_time), 0))
+                end_time = time.time()
+
+                time.sleep(max(1./self.fps_limit - (end_time-start_time), 0))

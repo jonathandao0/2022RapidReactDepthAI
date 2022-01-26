@@ -125,15 +125,13 @@ def capture(device_info):
             'red_cargo': 0,
             'blue_cargo': 0
         }
+        frame = None
         while True:
-            # cfg = dai.CameraControl()
-            # cfg.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
-            # cfg.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
-            # cfg.setAutoExposureLock(True)
-            # # cfg.setAutoExposureCompensation(-6)
-            # configQueue.send(cfg)
+            try:
+                frame = previewQueue.get().getCvFrame()
+            except:
+                log.error("Unable to get frame")
 
-            frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
             # edgeFrame = edgeQueue.get().getCvFrame()
