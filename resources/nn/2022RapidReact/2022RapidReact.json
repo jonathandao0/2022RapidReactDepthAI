@@ -24,8 +24,8 @@
         [
             "upper_hub",
 			"lower_hub",
-			"red_cargo",
-			"blue_cargo"
+			"blue_cargo",
+			"red_cargo"
         ]
     }
 }

@@ -48,12 +48,12 @@ def create_pipeline(model_name):
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-    camRgb.setFps(30)
+    camRgb.setFps(40)
 
     # edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     # edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 
-    objectTracker.setDetectionLabelsToTrack([2, 3])
+    objectTracker.setDetectionLabelsToTrack([3, 4])
     objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
     objectTracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.SMALLEST_ID)
 
@@ -91,8 +91,8 @@ def create_pipeline(model_name):
 
     with open(Path(__file__).parent.parent / Path(f"pipelines/") / "object_counter_script.py", "r") as f:
         s = f.read()
-        s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'red_cargo', 'blue_cargo' ]")
-        s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'red_cargo': 0, 'blue_cargo': 0 }")
+        s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'blue_cargo', 'red_cargo' ]")
+        s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'blue_cargo': 0, 'red_cargo': 0 }")
         s = s.replace("THRESH_DIST_DELTA", "0.25")
         script.setScript(s)
 

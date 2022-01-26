@@ -33,7 +33,7 @@ class ImageZMQClient:
         return sender
 
     def send_frame(self, frame):
-    #     self.frame_to_send = frame
+        self.frame_to_send = frame
     #
     # def run(self):
         # while True:
