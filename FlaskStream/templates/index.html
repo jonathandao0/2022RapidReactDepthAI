@@ -15,16 +15,11 @@
 </style>
 </head>
 <body>
-
-<h1 align="center">4201</h1>
-
 <div class="clearfix">
   <div class="img-container" align="center">
-        <p align="center">Outtake</p>
         <img src="{{ url_for('video_feed', feed_type='camera', device=0) }}" class="center"  style="border:1px solid black;width:100%" alt="Outtake Feed">
   </div>
   <div class="img-container" align="center">
-        <p align="center">Intake</p>
         <img src="{{ url_for('video_feed', feed_type='camera', device=1) }}" class="center"  style="border:1px solid black;width:100%" alt="Intake Feed">
   </div>
 </div>
