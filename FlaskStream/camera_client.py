@@ -2,6 +2,7 @@ import logging
 import time
 import threading
 
+import cv2
 import imagezmq
 import zmq
 
@@ -11,10 +12,11 @@ log = logging.getLogger(__name__)
 class ImageZMQClient:
     frame_to_send = None
 
-    def __init__(self, camera_id, port, fps_limit=30):
+    def __init__(self, camera_id, port, resolution=(320, 320), fps_limit=30):
         self.camera_id = camera_id
         self.port = port
         self.sender = self.init_sender(self.port)
+        self.resolution = resolution
         self.fps_limit = fps_limit
 
         p = threading.Thread(target=self.run)
@@ -39,9 +41,10 @@ class ImageZMQClient:
         while True:
             if self.frame_to_send is not None:
                 start_time = time.time()
+                resized_frame = cv2.resize(self.frame_to_send, self.resolution)
 
                 try:
-                    reply = self.sender.send_image(self.camera_id, self.frame_to_send)
+                    reply = self.sender.send_image(self.camera_id, resized_frame)
                 except (zmq.ZMQError, zmq.ContextTerminated, zmq.Again):
                     self.sender.close()
                     log.debug('Restarting ImageSender.')
