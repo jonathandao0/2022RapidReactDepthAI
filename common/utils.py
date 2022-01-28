@@ -4,47 +4,85 @@ import cv2
 
 
 class FPSHandler:
-    fps_color = (134, 164, 11)
-    fps_type = cv2.FONT_HERSHEY_SIMPLEX
 
-    def __init__(self, cap=None):
-        self.timestamp = time.monotonic()
-        self.start = None
-        self.framerate = cap.get(cv2.CAP_PROP_FPS) if cap is not None else None
-        self.useCamera = cap is None
+    def __init__(self, cap=None, maxTicks = 100):
+        """
+        Args:
+            cap (cv2.VideoCapture, Optional): handler to the video file object
+            maxTicks (int, Optional): maximum ticks amount for FPS calculation
+        """
+        self._timestamp = None
+        self._start = None
+        self._framerate = cap.get(cv2.CAP_PROP_FPS) if cap is not None else None
+        self._useCamera = cap is None
 
-        self.frame_cnt = 0
-        self.ticks = {}
-        self.ticks_cnt = {}
+        self._iterCnt = 0
+        self._ticks = {}
 
-    def next_iter(self):
-        if self.start is None:
-            self.start = time.monotonic()
+        if maxTicks < 2:
+            raise ValueError(f"Proviced maxTicks value must be 2 or higher (supplied: {maxTicks})")
 
-        if not self.useCamera:
-            frame_delay = 1.0 / self.framerate
-            delay = (self.timestamp + frame_delay) - time.monotonic()
+        self._maxTicks = maxTicks
+
+    def nextIter(self):
+        """
+        Marks the next iteration of the processing loop. Will use :obj:`time.sleep` method if initialized with video file
+        object
+        """
+        if self._start is None:
+            self._start = time.monotonic()
+
+        if not self._useCamera and self._timestamp is not None:
+            frameDelay = 1.0 / self._framerate
+            delay = (self._timestamp + frameDelay) - time.monotonic()
             if delay > 0:
                 time.sleep(delay)
-        self.timestamp = time.monotonic()
-        self.frame_cnt += 1
+        self._timestamp = time.monotonic()
+        self._iterCnt += 1
 
     def tick(self, name):
-        if name in self.ticks:
-            self.ticks_cnt[name] += 1
-        else:
-            self.ticks[name] = time.monotonic()
-            self.ticks_cnt[name] = 0
+        """
+        Marks a point in time for specified name
 
-    def tick_fps(self, name):
-        if name in self.ticks:
-            time_diff = time.monotonic() - self.ticks[name]
-            return self.ticks_cnt[name] / time_diff if time_diff != 0 else 0
+        Args:
+            name (str): Specifies timestamp name
+        """
+        if name not in self._ticks:
+            self._ticks[name] = collections.deque(maxlen=self._maxTicks)
+        self._ticks[name].append(time.monotonic())
+
+    def tickFps(self, name):
+        """
+        Calculates the FPS based on specified name
+
+        Args:
+            name (str): Specifies timestamps' name
+
+        Returns:
+            float: Calculated FPS or :code:`0.0` (default in case of failure)
+        """
+        if name in self._ticks and len(self._ticks[name]) > 1:
+            timeDiff = self._ticks[name][-1] - self._ticks[name][0]
+            return (len(self._ticks[name]) - 1) / timeDiff if timeDiff != 0 else 0.0
         else:
-            return 0
+            return 0.0
 
     def fps(self):
-        if self.start is None:
-            return 0
-        time_diff = self.timestamp - self.start
-        return self.frame_cnt / time_diff if time_diff != 0 else 0
+        """
+        Calculates FPS value based on :func:`nextIter` calls, being the FPS of processing loop
+
+        Returns:
+            float: Calculated FPS or :code:`0.0` (default in case of failure)
+        """
+        if self._start is None or self._timestamp is None:
+            return 0.0
+        timeDiff = self._timestamp - self._start
+        return self._iterCnt / timeDiff if timeDiff != 0 else 0.0
+
+    def printStatus(self):
+        """
+        Prints total FPS for all names stored in :func:`tick` calls
+        """
+        print("=== TOTAL FPS ===")
+        for name in self._ticks:
+            print(f"[{name}]: {self.tickFps(name):.1f}")

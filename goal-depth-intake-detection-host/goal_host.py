@@ -101,7 +101,7 @@ class GoalHost:
                 bbox['horizontal_angle_offset'] = horizontal_angle_offset
 
         fps = self.device_info['fps_handler']
-        fps.next_iter()
+        fps.nextIter()
         cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         bgr_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)

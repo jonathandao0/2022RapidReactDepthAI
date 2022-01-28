@@ -107,7 +107,7 @@ class IntakeHost:
         nt_tab.putNumber("blue_count", blue_count)
 
         fps = self.device_info['fps_handler']
-        fps.next_iter()
+        fps.nextIter()
         cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
 
         self.oak_1_stream.send_frame(frame)
