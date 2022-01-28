@@ -45,7 +45,7 @@ class IntakeHost:
 
         self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
 
-        self.oak_1_stream = ImageZMQClient("camera 2", 5809)
+        self.oak_1_stream = ImageZMQClient("camera 1", 5809)
 
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]

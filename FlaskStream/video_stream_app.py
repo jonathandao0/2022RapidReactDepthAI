@@ -18,13 +18,23 @@ except:
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', dest='hostname', default=ip_address, help='Set hostname (default: localhost)')
 parser.add_argument('-p', dest='port', default=5802, type=int, help='Set port (default: 5802)')
-parser.add_argument('-q', dest='quality', type=int, default=100, help='Set jpeg quality (default: 100). Lower this to reduce bandwidth cost')
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
+
+CAMERA_SETTINGS = {
+    'camera_0': {
+        'colorspace': 'BGR',
+        'quality': 30
+    },
+    'camera_1': {
+        'colorspace': 'BGR',
+        'quality': 30
+    },
+}
 
 
 @app.route('/')
@@ -34,16 +44,19 @@ def index():
 
 
 def gen(camera_stream, feed_type, device):
-    global quality
+    global CAMERA_SETTINGS
     """Video streaming generator function."""
     unique_name = (feed_type, device)
+    name = '{}_{}'.format(feed_type, device)
+    quality = CAMERA_SETTINGS[name]['quality']
+    colorspace = CAMERA_SETTINGS[name]['colorspace']
 
     while True:
         cam_id, frame = camera_stream.get_frame(unique_name)
         if frame is None:
             break
 
-        frame = simplejpeg.encode_jpeg(frame, quality=quality, colorspace='BGR', colorsubsampling='420', fastdct=True)
+        frame = simplejpeg.encode_jpeg(frame, quality=quality, colorspace=colorspace, colorsubsampling='420', fastdct=True)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -58,11 +71,9 @@ def video_feed(feed_type, device):
 
 
 if __name__ == '__main__':
-    global quality
     hostname = args.hostname
     port = args.port
     debug = args.debug
-    quality = args.quality
 
     log.info("Starting Flask app at {}:{}".format(hostname, port))
 

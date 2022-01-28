@@ -46,7 +46,7 @@ class GoalHost:
 
         self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline(MODEL_NAME)
 
-        self.oak_d_stream = ImageZMQClient("camera 1", 5808)
+        self.oak_d_stream = ImageZMQClient("camera 0", 5808)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
         valid_labels = ['upper_hub']
