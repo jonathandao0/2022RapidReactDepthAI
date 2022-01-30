@@ -19,9 +19,9 @@ class ImageZMQClient:
         self.resolution = resolution
         self.fps_limit = fps_limit
 
-        p = threading.Thread(target=self.run)
-        p.daemon = True
-        p.start()
+        th = threading.Thread(target=self.run)
+        th.daemon = True
+        th.start()
 
     def init_sender(self, port):
         sender = imagezmq.ImageSender(connect_to='tcp://localhost:{}'.format(port))
