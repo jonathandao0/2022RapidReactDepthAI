@@ -132,23 +132,23 @@ class GoalHost:
         log.info("Setup complete, parsing frames...")
 
         while True:
-            try:
-                if self.run_thread is None or not self.run_thread.is_alive():
-                    found, device_id = dai.Device.getDeviceByMxId(self.device_info['id'])
-                    self.device_info['nt_tab'].putBoolean("OAK-D_Goal Status", found)
+            if self.run_thread is None or not self.run_thread.is_alive():
+                found, device_id = dai.Device.getDeviceByMxId(self.device_info['id'])
+                self.device_info['nt_tab'].putBoolean("OAK-D_Goal Status", found)
 
-                    if found:
-                        self.run_thread = threading.Thread(target=self.run_goal_detection, args=(device_id,))
-                        self.run_thread.daemon = True
-                        self.run_thread.start()
+                if found:
+                    self.run_thread = threading.Thread(target=self.run_goal_detection, args=(device_id,))
+                    self.run_thread.daemon = True
+                    self.run_thread.start()
 
-                sleep(1)
-            except Exception as e:
-                log.error("Exception {}".format(e))
+            sleep(1)
 
     def run_goal_detection(self, device_id):
-        for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device_id):
-            self.parse_goal_frame(frame, edgeFrame, bboxes)
+        try:
+            for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device_id):
+                self.parse_goal_frame(frame, edgeFrame, bboxes)
+        except Exception as e:
+            log.error("Exception {}".format(e))
 
 
 class GoalHostDebug(GoalHost):
