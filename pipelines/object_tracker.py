@@ -132,13 +132,14 @@ def capture(device_info):
             except:
                 log.error("Unable to get frame")
 
-            inDet = detectionNNQueue.tryGet()
-            # edgeFrame = edgeRgbQueue.get().getFrame()
-            # edgeFrame = edgeQueue.get().getCvFrame()
-
             detections = []
-            if inDet is not None:
-                detections = inDet.detections
+            try:
+                inDet = detectionNNQueue.tryGet()
+
+                if inDet is not None:
+                    detections = inDet.detections
+            except:
+                log.error("Unable to get detecions")
 
             if outQueue.has():
                 jsonText = str(outQueue.get().getData(), 'utf-8')
