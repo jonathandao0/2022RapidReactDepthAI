@@ -53,6 +53,10 @@ class GoalHost:
 
         nt_tab = self.device_info['nt_tab']
 
+        edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
+        kernel = np.ones((3, 3), np.uint8)
+        edgeFrame = cv2.morphologyEx(edgeFrame, cv2.MORPH_CLOSE, kernel, iterations=1)
+
         if len(bboxes) == 0:
             nt_tab.putString("target_label", "None")
             nt_tab.putNumber("tv", 0)

@@ -50,12 +50,12 @@ class IntakeHost:
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
-        alliance_color = self.nt_controls.getString("Alliance", "Invalid")
+        alliance_color = self.nt_controls.getString("Alliance String", "Invalid")
 
-        if alliance_color == "Red":
+        if alliance_color.lower() == "red":
             valid_labels = ['red_cargo']
             null_labels = ['blue_cargo']
-        elif alliance_color == "Blue":
+        elif alliance_color.lower() == "blue":
             valid_labels = ['blue_cargo']
             null_labels = ['red_cargo']
         else:
