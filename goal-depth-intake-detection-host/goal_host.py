@@ -29,9 +29,9 @@ class GoalHost:
     run_thread = None
 
     def __init__(self):
-        log.info("Connected Devices:")
+        log.debug("Connected Devices:")
         for device in dai.Device.getAllAvailableDevices():
-            log.info(f"{device.getMxId()} {device.state}")
+            log.debug(f"{device.getMxId()} {device.state}")
 
         self.init_networktables()
         self.nt_controls = NetworkTables.getTable("Controls")
@@ -76,15 +76,15 @@ class GoalHost:
                 vertical_angle_offset = (target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 1080
 
                 if abs(horizontal_angle_offset) > 30:
-                    log.info("Invalid angle offset. Setting it to 0")
+                    log.debug("Invalid angle offset. Setting it to 0")
                     nt_tab.putNumber("tv", 0)
                     horizontal_angle_offset = 0
                 else:
-                    log.info("Found target '{}'\tX Angle Offset: {}".format(target_label, horizontal_angle_offset))
+                    log.debug("Found target '{}'\tX Angle Offset: {}".format(target_label, horizontal_angle_offset))
                     nt_tab.putNumber("tv", 1)
 
                 if abs(horizontal_angle_offset) > 30 and abs(vertical_angle_offset) > 30:
-                    log.info("Target not valid for distance measurements")
+                    log.debug("Target not valid for distance measurements")
                     nt_tab.putNumber("tg", 0)
                 else:
                     nt_tab.putNumber("tg", 1)
@@ -117,7 +117,7 @@ class GoalHost:
         NetworkTables.startClientTeam(4201)
 
         if not NetworkTables.isConnected():
-            log.info("Could not connect to team client. Trying other addresses...")
+            log.debug("Could not connect to team client. Trying other addresses...")
             NetworkTables.startClient([
                 '10.42.1.2',
                 '127.0.0.1',
@@ -126,14 +126,14 @@ class GoalHost:
             ])
 
         if NetworkTables.isConnected():
-            log.info("NT Connected to {}".format(NetworkTables.getRemoteAddress()))
+            log.debug("NT Connected to {}".format(NetworkTables.getRemoteAddress()))
             return True
         else:
             log.error("Could not connect to NetworkTables. Restarting server...")
             return False
 
     def run(self):
-        log.info("Setup complete, parsing frames...")
+        log.debug("Setup complete, parsing frames...")
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
@@ -141,9 +141,13 @@ class GoalHost:
                 self.device_info['nt_tab'].putBoolean("OAK-D_Goal Status", found)
 
                 if found:
+                    log.info("Goal Camera {} found. Starting processing thread...".format(self.device_info['id']))
+
                     self.run_thread = threading.Thread(target=self.run_goal_detection, args=(device_id,))
                     self.run_thread.daemon = True
                     self.run_thread.start()
+                else:
+                    log.error("Goal Camera {} not found. Attempting to restart thread...".format(self.device_info['id']))
 
             sleep(1)
 
@@ -159,6 +163,7 @@ class GoalHostDebug(GoalHost):
 
     def __init__(self):
         super().__init__()
+        log.setLevel(logging.DEBUG)
 
     def parse_goal_frame(self, frame, edgeFrame, bboxes):
         frame, edgeFrame, bboxes = super().parse_goal_frame(frame, edgeFrame, bboxes)

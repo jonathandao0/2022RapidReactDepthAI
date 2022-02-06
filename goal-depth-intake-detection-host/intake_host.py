@@ -29,9 +29,9 @@ class IntakeHost:
     run_thread = None
 
     def __init__(self):
-        log.info("Connected Devices:")
+        log.debug("Connected Devices:")
         for device in dai.Device.getAllAvailableDevices():
-            log.info(f"{device.getMxId()} {device.state}")
+            log.debug(f"{device.getMxId()} {device.state}")
 
         self.init_networktables()
         self.nt_controls = NetworkTables.getTable("Controls")
@@ -118,7 +118,7 @@ class IntakeHost:
         NetworkTables.startClientTeam(4201)
 
         if not NetworkTables.isConnected():
-            log.info("Could not connect to team client. Trying other addresses...")
+            log.debug("Could not connect to team client. Trying other addresses...")
             NetworkTables.startClient([
                 '10.42.1.2',
                 '127.0.0.1',
@@ -127,14 +127,14 @@ class IntakeHost:
             ])
 
         if NetworkTables.isConnected():
-            log.info("NT Connected to {}".format(NetworkTables.getRemoteAddress()))
+            log.debug("NT Connected to {}".format(NetworkTables.getRemoteAddress()))
             return True
         else:
             log.error("Could not connect to NetworkTables. Restarting server...")
             return False
 
     def run(self):
-        log.info("Setup complete, parsing frames...")
+        log.debug("Setup complete, parsing frames...")
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
@@ -142,9 +142,13 @@ class IntakeHost:
                 self.device_info['nt_tab'].putBoolean("OAK-1_Intake Status", found)
 
                 if found:
+                    log.info("Intake Camera {} found. Starting processing thread...".format(self.device_info['id']))
+
                     self.run_thread = threading.Thread(target=self.run_intake_detection, args=(device_id,))
                     self.run_thread.daemon = True
                     self.run_thread.start()
+                else:
+                    log.error("Intake Camera {} not found. Attempting to restart thread...".format(self.device_info['id']))
 
             sleep(1)
 
@@ -160,6 +164,7 @@ class IntakeHostDebug(IntakeHost):
 
     def __init__(self):
         super().__init__()
+        log.setLevel(level=logging.DEBUG)
 
     def parse_intake_frame(self, frame,  bboxes, counters):
         frame, bboxes, counters = super().parse_intake_frame(frame, bboxes, counters)

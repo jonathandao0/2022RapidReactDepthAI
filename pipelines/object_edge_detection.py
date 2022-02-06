@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 def create_pipeline(model_name):
     global pipeline
-    log.info("Creating DepthAI pipeline...")
+    log.debug("Creating DepthAI pipeline...")
 
     pipeline = dai.Pipeline()
     pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_3)
@@ -81,7 +81,7 @@ def create_pipeline(model_name):
     edgeManip.out.link(xoutEdge.input)
     xinEdgeCfg.out.link(edgeDetectorRgb.inputConfig)
 
-    log.info("Pipeline created.")
+    log.debug("Pipeline created.")
 
     return pipeline, labels
 
