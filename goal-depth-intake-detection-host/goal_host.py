@@ -38,8 +38,8 @@ class GoalHost:
 
         self.device_info = {
             'name': "OAK-D_Goal",
-            'id': "184430105169091300",
-            # 'id': "14442C1091398FD000",
+            'valid_ids': ["184430105169091300"],
+            'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }
@@ -135,6 +135,18 @@ class GoalHost:
     def run(self):
         log.debug("Setup complete, parsing frames...")
 
+        while self.device_info['id'] is None:
+            for device in self.device_info['valid_ids']:
+                found, device_id = dai.Device.getDeviceByMxId(device)
+
+                if found:
+                    log.info("Goal Camera {} found".format(self.device_info['id']))
+                    self.device_info['id'] = device
+                    break
+
+            log.error("No Intake Cameras found. Polling again in 5 seconds...")
+            sleep(5)
+
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
                 found, device_id = dai.Device.getDeviceByMxId(self.device_info['id'])
@@ -148,6 +160,9 @@ class GoalHost:
                     self.run_thread.start()
                 else:
                     log.error("Goal Camera {} not found. Attempting to restart thread...".format(self.device_info['id']))
+
+            if self.run_thread is not None and not self.run_thread.is_alive():
+                log.error("Goal thread died. Restarting thread...")
 
             sleep(1)
 

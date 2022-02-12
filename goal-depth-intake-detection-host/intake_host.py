@@ -27,6 +27,10 @@ log = logging.getLogger(__name__)
 
 class IntakeHost:
     run_thread = None
+    valid_labels = []
+    null_labels = []
+    target_lock = False
+    target_id = None
 
     def __init__(self):
         log.debug("Connected Devices:")
@@ -35,10 +39,13 @@ class IntakeHost:
 
         self.init_networktables()
         self.nt_controls = NetworkTables.getTable("Controls")
+        self.nt_vision = NetworkTables.getTable("Vision")
 
         self.device_info = {
             'name': "OAK-1_Intake",
-            'id': "14442C10C14F47D700",
+            'valid_ids': ["14442C10C14F47D700",
+                          "14442C1011043ED700"],
+            'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
         }
@@ -51,25 +58,36 @@ class IntakeHost:
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
         alliance_color = self.nt_controls.getString("Alliance String", "Invalid")
+        tracking_type = self.nt_vision.getNumber("Intake Tracking Type", 0)
+        self.target_lock = self.nt_vision.getNumber("intake_target_lock", 0)
 
-        if alliance_color.lower() == "red":
-            valid_labels = ['red_cargo']
-            null_labels = ['blue_cargo']
-        elif alliance_color.lower() == "blue":
-            valid_labels = ['blue_cargo']
-            null_labels = ['red_cargo']
+        if tracking_type == 1:
+            if alliance_color.lower() == "red":
+                self.valid_labels = ['red_launchpad']
+            elif alliance_color.lower() == "blue":
+                self.valid_labels = ['blue_launchpad']
+            else:
+                self.valid_labels = ['red_launchpad', 'blue_launchpad']
+            self.null_labels = []
         else:
-            valid_labels = ['red_cargo', 'blue_cargo']
-            null_labels = []
+            if alliance_color.lower() == "red":
+                self.valid_labels = ['red_cargo']
+                self.null_labels = ['blue_cargo']
+            elif alliance_color.lower() == "blue":
+                self.valid_labels = ['blue_cargo']
+                self.null_labels = ['red_cargo']
+            else:
+                self.valid_labels = ['red_cargo', 'blue_cargo']
+                self.null_labels = []
 
         nt_tab = self.device_info['nt_tab']
 
         filtered_bboxes = []
         null_bboxes = []
         for bbox in bboxes:
-            if self.intake_labels[bbox['label']] in valid_labels:
+            if self.intake_labels[bbox['label']] in self.valid_labels:
                 filtered_bboxes.append(bbox)
-            if self.intake_labels[bbox['label']] in null_labels:
+            if self.intake_labels[bbox['label']] in self.null_labels:
                 null_bboxes.append(bbox)
 
         filtered_bboxes.sort(key=operator.itemgetter('size'), reverse=True)
@@ -80,18 +98,29 @@ class IntakeHost:
         else:
             nt_tab.putNumber("tv", 1)
 
-            target_angles = []
-            for bbox in filtered_bboxes:
-                angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
-                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
+        if self.target_lock and self.target_id is None:
+            self.target_id = filtered_bboxes[0]['id']
+        elif not self.target_lock:
+            self.target_id = None
 
-                target_angles.append(angle_offset)
-                bbox['angle_offset'] = angle_offset
+        if self.target_lock and self.target_id is not None:
+            for i, bbox in filtered_bboxes:
+                if bbox['id'] == self.target_id:
+                    filtered_bboxes.insert(0, filtered_bboxes.pop(filtered_bboxes.index(i)))
+                    break
 
-            nt_tab.putNumberArray("ta", target_angles)
+        target_angles = []
+        for bbox in filtered_bboxes:
+            angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
+            cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
 
-            for bbox in null_bboxes:
-                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (255, 0, 0), 2)
+            target_angles.append(angle_offset)
+            bbox['angle_offset'] = angle_offset
+
+        nt_tab.putNumberArray("ta", target_angles)
+
+        for bbox in null_bboxes:
+            cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (125, 125, 125), 2)
 
         cv2.rectangle(frame, (0, 0), (NN_IMG_SIZE, 35),  (0, 0, 0), -1)
 
@@ -136,6 +165,18 @@ class IntakeHost:
     def run(self):
         log.debug("Setup complete, parsing frames...")
 
+        while self.device_info['id'] is None:
+            for device in self.device_info['valid_ids']:
+                found, device_id = dai.Device.getDeviceByMxId(device)
+
+                if found:
+                    self.device_info['id'] = device
+                    log.info("Intake Camera {} found".format(self.device_info['id']))
+                    break
+
+            log.error("No Intake Cameras found. Polling again in 5 seconds...")
+            sleep(5)
+
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
                 found, device_id = dai.Device.getDeviceByMxId(self.device_info['id'])
@@ -149,6 +190,9 @@ class IntakeHost:
                     self.run_thread.start()
                 else:
                     log.error("Intake Camera {} not found. Attempting to restart thread...".format(self.device_info['id']))
+
+            if self.run_thread is not None and not self.run_thread.is_alive():
+                log.error("Intake thread died. Restarting thread...")
 
             sleep(1)
 

@@ -91,5 +91,3 @@ class MjpegStream:
 
     def send_frame(self, frame):
         self.server_HTTP.frame_to_send = frame
-
-
