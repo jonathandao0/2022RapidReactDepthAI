@@ -53,7 +53,7 @@ def create_pipeline(model_name):
     # edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     # edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 
-    objectTracker.setDetectionLabelsToTrack([3, 4])
+    objectTracker.setDetectionLabelsToTrack([2, 3])
     objectTracker.setTrackerType(dai.TrackerType.ZERO_TERM_COLOR_HISTOGRAM)
     objectTracker.setTrackerIdAssignmentPolicy(dai.TrackerIdAssignmentPolicy.SMALLEST_ID)
 
@@ -93,7 +93,7 @@ def create_pipeline(model_name):
         s = f.read()
         s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'blue_cargo', 'red_cargo' ]")
         s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'blue_cargo': 0, 'red_cargo': 0 }")
-        s = s.replace("THRESH_DIST_DELTA", "0.25")
+        s = s.replace("THRESH_DIST_DELTA", "0.04")
         script.setScript(s)
 
     # camRgb.video.link(edgeDetectorRgb.inputImage)

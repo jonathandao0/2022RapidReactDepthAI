@@ -165,6 +165,7 @@ class IntakeHost:
     def run(self):
         log.debug("Setup complete, parsing frames...")
 
+        found = False
         while self.device_info['id'] is None:
             for device in self.device_info['valid_ids']:
                 found, device_id = dai.Device.getDeviceByMxId(device)
@@ -174,8 +175,9 @@ class IntakeHost:
                     log.info("Intake Camera {} found".format(self.device_info['id']))
                     break
 
-            log.error("No Intake Cameras found. Polling again in 5 seconds...")
-            sleep(5)
+            if not found:
+                log.error("No Intake Cameras found. Polling again in 5 seconds...")
+                sleep(5)
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
