@@ -57,8 +57,8 @@ class IntakeHost:
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
-        alliance_color = self.nt_controls.getString("Alliance String", "Invalid")
-        tracking_type = self.nt_vision.getNumber("Intake Tracking Type", 0)
+        alliance_color = self.nt_controls.getString("alliance_string", "Invalid")
+        tracking_type = self.nt_vision.getNumber("intake_tracking_type", 0)
         self.target_lock = self.nt_vision.getNumber("intake_target_lock", 0)
 
         if tracking_type == 1:

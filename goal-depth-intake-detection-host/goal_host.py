@@ -11,7 +11,7 @@ import depthai as dai
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from pipelines import goal_edge_depth_detection, object_tracker
+from pipelines import goal_edge_depth_detection
 import logging
 from common import target_finder
 
