@@ -91,8 +91,8 @@ def create_pipeline(model_name):
 
     with open(Path(__file__).parent.parent / Path(f"pipelines/") / "object_counter_script.py", "r") as f:
         s = f.read()
-        s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'blue_cargo', 'red_cargo' ]")
-        s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'blue_cargo': 0, 'red_cargo': 0 }")
+        s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'red_cargo', 'blue_cargo' ]")
+        s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'red_cargo': 0, 'blue_cargo': 0 }")
         s = s.replace("THRESH_DIST_DELTA", "0.04")
         script.setScript(s)
 

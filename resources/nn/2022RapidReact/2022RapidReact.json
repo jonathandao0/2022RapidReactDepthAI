@@ -6,7 +6,7 @@
         "input_size": "416x416",
         "NN_specific_metadata" :
         {
-            "classes" : 4,
+            "classes" : 6,
             "coordinates" : 4,
             "anchors" : [10,14, 23,27, 37,58, 81,82, 135,169, 344,319],
             "anchor_masks" :
@@ -24,8 +24,10 @@
         [
             "upper_hub",
 			"lower_hub",
+			"red_cargo",
 			"blue_cargo",
-			"red_cargo"
+			"blue_launchpad",
+			"red_launchpad"
         ]
     }
 }

@@ -66,11 +66,13 @@ class GoalHost:
                 if target_label not in valid_labels:
                     continue
 
-                edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
+                # edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
-                if target_x == -999 or target_y == -999:
-                    log.error("Error: Could not find target contour")
-                    continue
+                # if target_x == -999 or target_y == -999:
+                #     log.error("Error: Could not find target contour")
+                #     continue
+                target_x = bbox['x_mid']
+                target_y = bbox['y_mid']
 
                 horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
                 vertical_angle_offset = (target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 1080
@@ -102,7 +104,8 @@ class GoalHost:
 
                 bbox['target_x'] = target_x
                 bbox['target_y'] = target_y
-                bbox['horizontal_angle_offset'] = horizontal_angle_offset
+                bbox['h_angle'] = horizontal_angle_offset
+                bbox['v_angle'] = vertical_angle_offset
 
         fps = self.device_info['fps_handler']
         fps.nextIter()
@@ -193,7 +196,7 @@ class GoalHostDebug(GoalHost):
                 continue
 
             target_x = bbox['target_x'] if 'target_x' in bbox else 0
-            angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
+            angle_offset = bbox['h_angle'] if 'h_angle' in bbox else 0
 
             cv2.putText(edgeFrame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
