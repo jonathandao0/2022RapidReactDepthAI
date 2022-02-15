@@ -60,6 +60,9 @@ class GoalHost:
         if len(bboxes) == 0:
             nt_tab.putString("target_label", "None")
             nt_tab.putNumber("tv", 0)
+            nt_tab.putNumber("tx", 0)
+            nt_tab.putNumber("ty", 0)
+            nt_tab.putNumber("tz", 0)
         else:
             for bbox in bboxes:
                 target_label = self.goal_labels[bbox['label']]
@@ -102,8 +105,8 @@ class GoalHost:
                 # cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
                 #            thickness=-1)
 
-                bbox['target_x'] = target_x
-                bbox['target_y'] = target_y
+                # bbox['target_x'] = target_x
+                # bbox['target_y'] = target_y
                 bbox['h_angle'] = horizontal_angle_offset
                 bbox['v_angle'] = vertical_angle_offset
 
@@ -195,21 +198,23 @@ class GoalHostDebug(GoalHost):
             if target_label not in valid_labels:
                 continue
 
-            target_x = bbox['target_x'] if 'target_x' in bbox else 0
-            angle_offset = bbox['h_angle'] if 'h_angle' in bbox else 0
+            h_angle = bbox['h_angle'] if 'h_angle' in bbox else 0
+            v_angle = bbox['v_angle'] if 'v_angle' in bbox else 0
 
-            cv2.putText(edgeFrame, "x: {}".format(round(target_x, 2)), (bbox['x_min'], bbox['y_min'] + 30),
+            cv2.putText(edgeFrame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(edgeFrame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(edgeFrame, "z: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 70),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "angle: {}".format(round(angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 90),
+            cv2.putText(edgeFrame, "h_angle: {}".format(round(h_angle, 3)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
+            cv2.putText(edgeFrame, "v_angle: {}".format(round(v_angle, 3)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 130),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            # cv2.putText(edgeFrame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 130),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            # cv2.putText(edgeFrame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 150),
+            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         cv2.imshow("OAK-D Goal Edge", edgeFrame)
         cv2.imshow("OAK-D Goal ", frame)

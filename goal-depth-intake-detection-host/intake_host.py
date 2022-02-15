@@ -123,17 +123,26 @@ class IntakeHost:
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (125, 125, 125), 2)
 
         cv2.rectangle(frame, (0, 0), (NN_IMG_SIZE, 35),  (0, 0, 0), -1)
+        if tracking_type == 1:
+            if alliance_color.lower() == "red":
+                color = (0, 0, 255)
+            elif alliance_color.lower() == "blue":
+                color = (255, 0, 0)
+            else:
+                color = (255, 255, 255)
 
-        red_offset = nt_tab.getNumber("red_counter_offset", 0)
-        blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
-        red_count = counters['red_cargo']
-        blue_count = counters['blue_cargo']
+            cv2.putText(frame, "Tracking Launchpad", (60, 30), cv2.FONT_HERSHEY_DUPLEX, 1, color, 2)
+        else:
+            red_offset = nt_tab.getNumber("red_counter_offset", 0)
+            blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
+            red_count = counters['red_cargo']
+            blue_count = counters['blue_cargo']
 
-        cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
-        cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 28), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
 
-        nt_tab.putNumber("red_count", red_count)
-        nt_tab.putNumber("blue_count", blue_count)
+            nt_tab.putNumber("red_count", red_count)
+            nt_tab.putNumber("blue_count", blue_count)
 
         fps = self.device_info['fps_handler']
         fps.nextIter()
