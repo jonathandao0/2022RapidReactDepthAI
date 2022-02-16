@@ -38,7 +38,8 @@ class GoalHost:
 
         self.device_info = {
             'name': "OAK-D_Goal",
-            'valid_ids': ["184430105169091300"],
+            'valid_ids': ["184430105169091300",
+                          "18443010B1FA0C1300"],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
