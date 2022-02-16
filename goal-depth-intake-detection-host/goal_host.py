@@ -13,7 +13,6 @@ from common.config import NN_IMG_SIZE, MODEL_NAME
 
 from pipelines import goal_edge_depth_detection
 import logging
-from common import target_finder
 
 from networktables.util import NetworkTables
 from common.utils import FPSHandler

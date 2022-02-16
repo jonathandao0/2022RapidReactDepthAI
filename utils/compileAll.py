@@ -7,11 +7,16 @@ directories = [
     'pipelines'
 ]
 
+ignore = [
+    '__init__.py',
+    'object_counter_script.py'
+]
+
 python_files = []
 for d in directories:
-    for root, d, files in os.walk("..\\{}".format(d)):
+    for root, dirs, files in os.walk("..\\{}".format(d)):
         for f in files:
-            if f == '__init__.py':
+            if f in ignore:
                 continue
 
             if f.endswith(".py"):
