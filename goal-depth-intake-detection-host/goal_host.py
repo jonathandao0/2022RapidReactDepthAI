@@ -152,7 +152,7 @@ class GoalHost:
                     break
 
             if not found:
-                log.error("No Intake Cameras found. Polling again in 5 seconds...")
+                log.error("No Goal Cameras found. Polling again in 5 seconds...")
                 sleep(5)
 
         while True:

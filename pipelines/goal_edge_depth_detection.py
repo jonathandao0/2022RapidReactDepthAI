@@ -24,18 +24,21 @@ def create_pipeline(model_name):
     monoLeft = pipeline.createMonoCamera()
     monoRight = pipeline.createMonoCamera()
     stereo = pipeline.createStereoDepth()
+    videoEncoder = pipeline.createVideoEncoder()
 
     xoutRgb = pipeline.createXLinkOut()
     rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
     xoutEdge = pipeline.createXLinkOut()
+    videoOut = pipeline.create(dai.node.XLinkOut)
 
     xoutRgb.setStreamName("rgb")
     # xinRgb.setStreamName("rgbCfg")
     rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
     xoutEdge.setStreamName("edge")
+    videoOut.setStreamName("h265")
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -45,6 +48,8 @@ def create_pipeline(model_name):
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(30)
     camRgb.initialControl.setManualExposure(100000, 300)
+
+    videoEncoder.setDefaultProfilePreset(30, dai.VideoEncoderProperties.Profile.H265_MAIN)
 
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -98,16 +103,21 @@ def create_pipeline(model_name):
     monoRight.out.link(stereo.right)
     stereo.depth.link(detectionNetwork.inputDepth)
 
+    camRgb.video.link(videoEncoder.input)
+    videoEncoder.bitstream.link(videoOut.input)
+
     log.debug("Pipeline created.")
 
     return pipeline, labels
 
 
 def capture(device_info):
-    with dai.Device(pipeline, device_info) as device:
+    with dai.Device(pipeline, device_info) as device, open('video.h265', 'wb') as videoFile:
+    # with dai.Device(pipeline, device_info) as device:
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
+        qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=True)
 
         # configQueue = device.getInputQueue('rgbCfg')
 
@@ -120,6 +130,9 @@ def capture(device_info):
             detections = []
             if inDet is not None:
                 detections = inDet.detections
+
+            while qRgbEnc.has():
+                qRgbEnc.get().getData().tofile(videoFile)
 
             bboxes = []
             height = edgeFrame.shape[0]
