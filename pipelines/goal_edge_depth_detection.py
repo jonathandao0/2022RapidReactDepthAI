@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 
 import depthai as dai
 import uuid
@@ -112,8 +113,10 @@ def create_pipeline(model_name):
 
 
 def capture(device_info):
-    with dai.Device(pipeline, device_info) as device, open('video.h265', 'wb') as videoFile:
+    filename = '{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+    with dai.Device(pipeline, device_info) as device, open(filename, 'wb') as videoFile:
     # with dai.Device(pipeline, device_info) as device:
+        log.warning("VIDEO ENCODING ENABLED")
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
