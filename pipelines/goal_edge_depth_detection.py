@@ -9,6 +9,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
+ENABLE_RECORDING = False
+
 
 def create_pipeline(model_name):
     global pipeline
@@ -25,21 +27,18 @@ def create_pipeline(model_name):
     monoLeft = pipeline.createMonoCamera()
     monoRight = pipeline.createMonoCamera()
     stereo = pipeline.createStereoDepth()
-    videoEncoder = pipeline.createVideoEncoder()
 
     xoutRgb = pipeline.createXLinkOut()
     rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
     xoutEdge = pipeline.createXLinkOut()
-    videoOut = pipeline.create(dai.node.XLinkOut)
 
     xoutRgb.setStreamName("rgb")
     # xinRgb.setStreamName("rgbCfg")
     rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
     xoutEdge.setStreamName("edge")
-    videoOut.setStreamName("h265")
 
     # Properties
     camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -50,7 +49,6 @@ def create_pipeline(model_name):
     camRgb.setFps(30)
     camRgb.initialControl.setManualExposure(100000, 300)
 
-    videoEncoder.setDefaultProfilePreset(30, dai.VideoEncoderProperties.Profile.H265_MAIN)
 
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
@@ -104,8 +102,13 @@ def create_pipeline(model_name):
     monoRight.out.link(stereo.right)
     stereo.depth.link(detectionNetwork.inputDepth)
 
-    camRgb.video.link(videoEncoder.input)
-    videoEncoder.bitstream.link(videoOut.input)
+    if ENABLE_RECORDING:
+        videoEncoder = pipeline.createVideoEncoder()
+        videoEncoder.setDefaultProfilePreset(30, dai.VideoEncoderProperties.Profile.H265_MAIN)
+        videoOut = pipeline.create(dai.node.XLinkOut)
+        videoOut.setStreamName("h265")
+        camRgb.video.link(videoEncoder.input)
+        videoEncoder.bitstream.link(videoOut.input)
 
     log.debug("Pipeline created.")
 
@@ -113,11 +116,18 @@ def create_pipeline(model_name):
 
 
 def capture(device_info):
-    filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+    if ENABLE_RECORDING:
+        filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
 
-    with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
-    # with dai.Device(pipeline, device_info) as device:
         log.warning("VIDEO ENCODING ENABLED")
+        with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
+            process_output(device)
+    else:
+        with dai.Device(pipeline, device_info) as device:
+            process_output(device)
+
+
+def process_output(device):
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
@@ -135,8 +145,9 @@ def capture(device_info):
             if inDet is not None:
                 detections = inDet.detections
 
-            while qRgbEnc.has():
-                qRgbEnc.get().getData().tofile(videoFile)
+            if ENABLE_RECORDING:
+                while qRgbEnc.has():
+                    qRgbEnc.get().getData().tofile(videoFile)
 
             bboxes = []
             height = edgeFrame.shape[0]
