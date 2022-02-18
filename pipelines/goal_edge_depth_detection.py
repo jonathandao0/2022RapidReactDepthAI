@@ -49,7 +49,6 @@ def create_pipeline(model_name):
     camRgb.setFps(30)
     camRgb.initialControl.setManualExposure(100000, 300)
 
-
     edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 
@@ -116,22 +115,18 @@ def create_pipeline(model_name):
 
 
 def capture(device_info):
+    filePath = 'empty_file'
     if ENABLE_RECORDING:
+        log.warning("VIDEO ENCODING ENABLED")
         filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
 
-        log.warning("VIDEO ENCODING ENABLED")
-        with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
-            process_output(device)
-    else:
-        with dai.Device(pipeline, device_info) as device:
-            process_output(device)
-
-
-def process_output(device):
+    with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
-        qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
+
+        if ENABLE_RECORDING:
+            qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
 
         # configQueue = device.getInputQueue('rgbCfg')
 
