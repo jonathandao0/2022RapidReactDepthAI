@@ -144,8 +144,8 @@ class GoalHost:
 
         found = False
         while self.device_info['id'] is None:
-            for device in self.device_info['valid_ids']:
-                found, device_id = dai.Device.getDeviceByMxId(device)
+            for device_id in self.device_info['valid_ids']:
+                found, device = dai.Device.getDeviceByMxId(device_id)
 
                 if found:
                     self.device_info['id'] = device_id
@@ -158,13 +158,13 @@ class GoalHost:
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
-                found, device_id = dai.Device.getDeviceByMxId(self.device_info['id'])
+                found, device = dai.Device.getDeviceByMxId(self.device_info['id'])
                 self.device_info['nt_tab'].putBoolean("OAK-D_Goal Status", found)
 
                 if found:
                     log.info("Goal Camera {} found. Starting processing thread...".format(self.device_info['id']))
 
-                    self.run_thread = threading.Thread(target=self.run_goal_detection, args=(device_id,))
+                    self.run_thread = threading.Thread(target=self.run_goal_detection, args=(device,))
                     self.run_thread.daemon = True
                     self.run_thread.start()
                 else:
@@ -175,9 +175,9 @@ class GoalHost:
 
             sleep(1)
 
-    def run_goal_detection(self, device_id):
+    def run_goal_detection(self, device):
         try:
-            for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device_id):
+            for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device):
                 self.parse_goal_frame(frame, edgeFrame, bboxes)
         except Exception as e:
             log.error("Exception {}".format(e))

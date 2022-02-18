@@ -113,8 +113,9 @@ def create_pipeline(model_name):
 
 
 def capture(device_info):
-    filename = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
-    with dai.Device(pipeline, device_info) as device, open(filename, 'wb') as videoFile:
+    filePath = '../recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+
+    with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
     # with dai.Device(pipeline, device_info) as device:
         log.warning("VIDEO ENCODING ENABLED")
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)

@@ -176,8 +176,8 @@ class IntakeHost:
 
         found = False
         while self.device_info['id'] is None:
-            for device in self.device_info['valid_ids']:
-                found, device_id = dai.Device.getDeviceByMxId(device)
+            for device_id in self.device_info['valid_ids']:
+                found, device = dai.Device.getDeviceByMxId(device_id)
 
                 if found:
                     self.device_info['id'] = device_id
@@ -190,13 +190,13 @@ class IntakeHost:
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
-                found, device_id = dai.Device.getDeviceByMxId(self.device_info['id'])
+                found, device = dai.Device.getDeviceByMxId(self.device_info['id'])
                 self.device_info['nt_tab'].putBoolean("OAK-1_Intake Status", found)
 
                 if found:
                     log.info("Intake Camera {} found. Starting processing thread...".format(self.device_info['id']))
 
-                    self.run_thread = threading.Thread(target=self.run_intake_detection, args=(device_id,))
+                    self.run_thread = threading.Thread(target=self.run_intake_detection, args=(device,))
                     self.run_thread.daemon = True
                     self.run_thread.start()
                 else:
@@ -207,9 +207,9 @@ class IntakeHost:
 
             sleep(1)
 
-    def run_intake_detection(self, device_id):
+    def run_intake_detection(self, device):
         try:
-            for frame, bboxes, counters in object_tracker.capture(device_id):
+            for frame, bboxes, counters in object_tracker.capture(device):
                 self.parse_intake_frame(frame, bboxes, counters)
         except Exception as e:
             log.error("Exception {}".format(e))
