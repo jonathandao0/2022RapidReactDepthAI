@@ -180,7 +180,7 @@ class IntakeHost:
                 found, device_id = dai.Device.getDeviceByMxId(device)
 
                 if found:
-                    self.device_info['id'] = device
+                    self.device_info['id'] = device_id
                     log.info("Intake Camera {} found".format(self.device_info['id']))
                     break
 

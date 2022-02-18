@@ -38,7 +38,8 @@ class GoalHost:
         self.device_info = {
             'name': "OAK-D_Goal",
             'valid_ids': ["184430105169091300",
-                          "18443010B1FA0C1300"],
+                          "18443010B1FA0C1300",
+                          "18443010A1D0AA1200"],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
@@ -147,8 +148,8 @@ class GoalHost:
                 found, device_id = dai.Device.getDeviceByMxId(device)
 
                 if found:
+                    self.device_info['id'] = device_id
                     log.info("Goal Camera {} found".format(self.device_info['id']))
-                    self.device_info['id'] = device
                     break
 
             if not found:
