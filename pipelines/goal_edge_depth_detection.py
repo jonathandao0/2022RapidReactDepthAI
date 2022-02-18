@@ -113,7 +113,7 @@ def create_pipeline(model_name):
 
 
 def capture(device_info):
-    filePath = '../recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+    filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
 
     with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
     # with dai.Device(pipeline, device_info) as device:
@@ -121,7 +121,7 @@ def capture(device_info):
         previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
-        qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=True)
+        qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
 
         # configQueue = device.getInputQueue('rgbCfg')
 
