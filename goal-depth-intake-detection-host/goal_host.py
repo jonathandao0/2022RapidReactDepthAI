@@ -79,7 +79,7 @@ class GoalHost:
                 target_y = bbox['y_mid']
 
                 horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
-                vertical_angle_offset = (target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 1080
+                vertical_angle_offset = -(target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 1080
 
                 if abs(horizontal_angle_offset) > 30:
                     log.debug("Invalid angle offset. Setting it to 0")
