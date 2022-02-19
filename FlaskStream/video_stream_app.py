@@ -19,22 +19,35 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-i', dest='hostname', default=ip_address, help='Set hostname (default: localhost)')
 parser.add_argument('-p', dest='port', default=5802, type=int, help='Set port (default: 5802)')
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
+parser.add_argument('--demo', dest='demo', action="store_true", default=False, help='Enable Demo Mode')
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-CAMERA_SETTINGS = {
-    'camera_0': {
-        'colorspace': 'BGR',
-        'quality': 30
-    },
-    'camera_1': {
-        'colorspace': 'BGR',
-        'quality': 30
-    },
-}
+if args.demo:
+    CAMERA_SETTINGS = {
+        'camera_0': {
+            'colorspace': 'BGR',
+            'quality': 100
+        },
+        'camera_1': {
+            'colorspace': 'BGR',
+            'quality': 100
+        },
+    }
+else:
+    CAMERA_SETTINGS = {
+        'camera_0': {
+            'colorspace': 'BGR',
+            'quality': 30
+        },
+        'camera_1': {
+            'colorspace': 'BGR',
+            'quality': 30
+        },
+    }
 
 
 @app.route('/')

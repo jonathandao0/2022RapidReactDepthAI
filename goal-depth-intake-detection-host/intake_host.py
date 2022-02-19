@@ -20,6 +20,7 @@ from common.utils import FPSHandler
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
+parser.add_argument('--demo', dest='demo', action="store_true", default=False, help='Enable Demo Mode')
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
@@ -44,7 +45,8 @@ class IntakeHost:
         self.device_info = {
             'name': "OAK-1_Intake",
             'valid_ids': ["14442C10C14F47D700",
-                          "14442C1011043ED700"],
+                          "14442C1011043ED700",
+                          "184430105169091300"],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
@@ -114,6 +116,12 @@ class IntakeHost:
             angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
 
+            if args.demo:
+                cv2.putText(frame, "{}".format(self.intake_labels[bbox['label']]), (bbox['x_min'], bbox['y_min'] + 30),
+                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                cv2.putText(frame, "{}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+
             target_angles.append(angle_offset)
             bbox['angle_offset'] = angle_offset
 
@@ -121,6 +129,12 @@ class IntakeHost:
 
         for bbox in null_bboxes:
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (125, 125, 125), 2)
+
+            if args.demo:
+                cv2.putText(frame, "{}".format(self.intake_labels[bbox['label']]), (bbox['x_min'], bbox['y_min'] + 30),
+                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+                cv2.putText(frame, "{}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+                            cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         cv2.rectangle(frame, (0, 0), (NN_IMG_SIZE, 35),  (0, 0, 0), -1)
         if tracking_type == 1:
@@ -230,7 +244,8 @@ class IntakeHostDebug(IntakeHost):
             frame_color = (0, 255, 0) if i == 0 else (0, 150, 150)
 
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), frame_color, 2)
-            cv2.putText(frame, "label: {}".format(self.intake_labels[bbox['label']]), (bbox['x_min'], bbox['y_min'] + 30),
+            cv2.putText(frame, "label: {}".format(self.intake_labels[bbox['label']]),
+                        (bbox['x_min'], bbox['y_min'] + 30),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))

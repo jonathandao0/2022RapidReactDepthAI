@@ -8,6 +8,7 @@ from time import sleep
 import cv2
 import depthai as dai
 
+from PIL import Image
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
@@ -19,9 +20,27 @@ from common.utils import FPSHandler
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
+parser.add_argument('--demo', dest='demo', action="store_true", default=False, help='Enable Demo Mode')
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
+
+
+def label_frame(frame, bbox):
+    cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
+                cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+    cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+                cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+    cv2.putText(frame, "z: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 70),
+                cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+    cv2.putText(frame, "h_angle: {}".format(round(bbox['h_angle'], 3)), (bbox['x_min'], bbox['y_min'] + 90),
+                cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+    cv2.putText(frame, "v_angle: {}".format(round(bbox['v_angle'], 3)), (bbox['x_min'], bbox['y_min'] + 110),
+                cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+    # cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 130),
+    #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+    # cv2.putText(frame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 150),
+    #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
 
 class GoalHost:
@@ -102,6 +121,8 @@ class GoalHost:
 
                 cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                               (255, 255, 255), 2)
+                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                              (255, 255, 255), 2)
 
                 # cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
                 #            thickness=-1)
@@ -111,12 +132,22 @@ class GoalHost:
                 bbox['h_angle'] = horizontal_angle_offset
                 bbox['v_angle'] = vertical_angle_offset
 
+                if args.demo:
+                    label_frame(frame, bbox)
+
         fps = self.device_info['fps_handler']
         fps.nextIter()
-        cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        bgr_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)
-        self.oak_d_stream.send_frame(bgr_frame)
+        cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+
+        if not args.demo:
+            # gray_frame = Image.fromarray(edgeFrame, 'L')
+            gray_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)
+
+            self.oak_d_stream.send_frame(gray_frame)
+        else:
+            self.oak_d_stream.send_frame(frame)
 
         return frame, edgeFrame, bboxes
 
@@ -199,23 +230,8 @@ class GoalHostDebug(GoalHost):
             if target_label not in valid_labels:
                 continue
 
-            h_angle = bbox['h_angle'] if 'h_angle' in bbox else 0
-            v_angle = bbox['v_angle'] if 'v_angle' in bbox else 0
-
-            cv2.putText(edgeFrame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 30),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "z: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 70),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "h_angle: {}".format(round(h_angle, 3)), (bbox['x_min'], bbox['y_min'] + 90),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(edgeFrame, "v_angle: {}".format(round(v_angle, 3)), (bbox['x_min'], bbox['y_min'] + 110),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            # cv2.putText(edgeFrame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 130),
-            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            # cv2.putText(edgeFrame, "label: {}".format(self.goal_labels[bbox['label']], 1), (bbox['x_min'], bbox['y_min'] + 150),
-            #             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            label_frame(edgeFrame, bbox)
+            label_frame(frame, bbox)
 
         cv2.imshow("OAK-D Goal Edge", edgeFrame)
         cv2.imshow("OAK-D Goal ", frame)

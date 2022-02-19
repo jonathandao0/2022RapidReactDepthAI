@@ -17,7 +17,7 @@ def create_pipeline(model_name):
     log.debug("Creating DepthAI pipeline...")
 
     pipeline = dai.Pipeline()
-    pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_3)
+    pipeline.setOpenVINOVersion(dai.OpenVINO.Version.VERSION_2021_4)
 
     # Define sources and outputs
     camRgb = pipeline.createColorCamera()
