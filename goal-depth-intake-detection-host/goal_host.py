@@ -231,7 +231,9 @@ class GoalHostDebug(GoalHost):
                 continue
 
             label_frame(edgeFrame, bbox)
-            label_frame(frame, bbox)
+
+            if not args.demo:
+                label_frame(frame, bbox)
 
         cv2.imshow("OAK-D Goal Edge", edgeFrame)
         cv2.imshow("OAK-D Goal ", frame)
