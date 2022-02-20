@@ -28,13 +28,15 @@ def create_pipeline(model_name):
     monoRight = pipeline.createMonoCamera()
     stereo = pipeline.createStereoDepth()
 
-    xoutRgb = pipeline.createXLinkOut()
+    # xoutRgb = pipeline.createXLinkOut()
+    xoutRgbPreview = pipeline.createXLinkOut()
     rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
     xoutEdge = pipeline.createXLinkOut()
 
-    xoutRgb.setStreamName("rgb")
+    # xoutRgb.setStreamName("rgb")
+    xoutRgbPreview.setStreamName("rgb_preview")
     # xinRgb.setStreamName("rgbCfg")
     rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
@@ -88,7 +90,8 @@ def create_pipeline(model_name):
     # Linking
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
-    camRgb.preview.link(xoutRgb.input)
+    camRgb.preview.link(xoutRgbPreview.input)
+    # camRgb.video.link(xoutRgb.input)
     rgbControl.out.link(camRgb.inputControl)
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
@@ -121,7 +124,8 @@ def capture(device_info):
         filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
 
     with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
-        previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        # rgbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
 
@@ -131,6 +135,7 @@ def capture(device_info):
         # configQueue = device.getInputQueue('rgbCfg')
 
         while True:
+            # frame = rgbQueue.get().getCvFrame()
             frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
             # edgeFrame = edgeRgbQueue.get().getFrame()
@@ -145,25 +150,34 @@ def capture(device_info):
                     qRgbEnc.get().getData().tofile(videoFile)
 
             bboxes = []
-            height = edgeFrame.shape[0]
-            width  = edgeFrame.shape[1]
+            x_offset = 0
+            y_offset = 0
             for detection in detections:
+                (xmin, ymin, xmax, ymax) = normalize_detections(frame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
+
                 bboxes.append({
                     'id': uuid.uuid4(),
                     'label': detection.label,
                     'confidence': detection.confidence,
-                    'x_min': int(detection.xmin * width),
-                    'x_mid': int(((detection.xmax - detection.xmin) / 2 + detection.xmin) * width),
-                    'x_max': int(detection.xmax * width),
-                    'y_min': int(detection.ymin * height),
-                    'y_mid': int(((detection.ymax - detection.ymin) / 2 + detection.ymin) * height),
-                    'y_max': int(detection.ymax * height),
+                    'x_min': xmin + x_offset,
+                    'x_mid': int(((xmax - xmin) / 2 + xmin)) + x_offset,
+                    'x_max': xmax + x_offset,
+                    'y_min': ymin,
+                    'y_mid': int(((ymax - ymin) / 2 + ymin)),
+                    'y_max': ymax,
+                    'size': (ymax - ymin) * (xmax - xmin),
                     'depth_x': detection.spatialCoordinates.x / 1000,
                     'depth_y': detection.spatialCoordinates.y / 1000,
                     'depth_z': detection.spatialCoordinates.z / 1000,
                 })
 
             yield frame, edgeFrame, bboxes
+
+
+def normalize_detections(frame, bbox):
+    normVals = np.full(len(bbox), frame.shape[0])
+    normVals[::2] = frame.shape[1]
+    return (np.clip(np.array(bbox), 0, 1) * normVals).astype(int)
 
 
 def del_pipeline():

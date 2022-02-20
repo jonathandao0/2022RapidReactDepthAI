@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-
+import cv2
 import depthai as dai
 import uuid
+
+import numpy as np
 
 from common.config import *
 from pathlib import Path
@@ -25,6 +27,7 @@ def create_pipeline(model_name):
     script = pipeline.create(dai.node.Script)
 
     xoutRgb = pipeline.createXLinkOut()
+    xoutRgbPreview = pipeline.createXLinkOut()
     # rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
@@ -34,6 +37,7 @@ def create_pipeline(model_name):
     trackerOut = pipeline.createXLinkOut()
 
     xoutRgb.setStreamName("rgb")
+    xoutRgbPreview.setStreamName("rgb_preview")
     # xinRgb.setStreamName("rgbCfg")
     # rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
@@ -81,7 +85,8 @@ def create_pipeline(model_name):
     # Linking
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
-    camRgb.preview.link(xoutRgb.input)
+    camRgb.preview.link(xoutRgbPreview.input)
+    camRgb.video.link(xoutRgb.input)
     # rgbControl.out.link(camRgb.inputControl)
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
@@ -96,7 +101,7 @@ def create_pipeline(model_name):
         s = f.read()
         s = s.replace("LABELS = []", "LABELS = [ 'upper_hub', 'lower_hub', 'red_cargo', 'blue_cargo' ]")
         s = s.replace("COUNTER = {}", "COUNTER = { 'upper_hub': 0, 'lower_hub': 0, 'red_cargo': 0, 'blue_cargo': 0 }")
-        s = s.replace("THRESH_DIST_DELTA", "0.025")
+        s = s.replace("THRESH_DIST_DELTA", "0.4")
         script.setScript(s)
 
     # camRgb.video.link(edgeDetectorRgb.inputImage)
@@ -112,7 +117,8 @@ def create_pipeline(model_name):
 
 def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
-        previewQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        rqbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+        previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         # # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
         # edgeQueue = device.getOutputQueue("edge", 8, False)
@@ -131,7 +137,8 @@ def capture(device_info):
         frame = None
         while True:
             try:
-                frame = previewQueue.get().getCvFrame()
+                frame = rqbQueue.get().getCvFrame()
+                # frame = previewQueue.get().getCvFrame()
             except:
                 log.error("Unable to get frame")
 
@@ -149,23 +156,33 @@ def capture(device_info):
                 counters = json.loads(jsonText)
 
             bboxes = []
-            height = frame.shape[0]
-            width  = frame.shape[1]
+            frame = cv2.resize(frame, (int(1920 / 4), int(1080 / 4)))
+            x_offset = int((frame.shape[1] - frame.shape[0]) / 2.0)
+            y_offset = 0
             for detection in detections:
+                (xmin, ymin, xmax, ymax) = normalize_detections(frame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
+
                 bboxes.append({
                     'id': uuid.uuid4(),
                     'label': detection.label,
                     'confidence': detection.confidence,
-                    'x_min': int(detection.xmin * width),
-                    'x_mid': int(((detection.xmax - detection.xmin) / 2 + detection.xmin) * width),
-                    'x_max': int(detection.xmax * width),
-                    'y_min': int(detection.ymin * height),
-                    'y_mid': int(((detection.ymax - detection.ymin) / 2 + detection.ymin) * height),
-                    'y_max': int(detection.ymax * height),
-                    'size': ((detection.ymax - detection.ymin) * height) * ((detection.xmax - detection.xmin) * width)
+                    'x_min': xmin + x_offset,
+                    'x_mid': int(((xmax - xmin) / 2 + xmin)) + x_offset,
+                    'x_max': xmax + x_offset,
+                    'y_min': ymin,
+                    'y_mid': int(((ymax - ymin) / 2 + ymin)),
+                    'y_max': ymax,
+                    'size': (ymax - ymin) * (xmax - xmin)
                 })
 
             yield frame, bboxes, counters
+
+
+def normalize_detections(frame, bbox):
+    normVals = np.full(len(bbox), frame.shape[0])
+    normVals[::2] = frame.shape[0]
+    # normVals[::2] = frame.shape[1]
+    return (np.clip(np.array(bbox), 0, 1) * normVals).astype(int)
 
 
 def del_pipeline():
