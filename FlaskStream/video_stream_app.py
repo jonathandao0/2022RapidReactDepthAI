@@ -30,11 +30,11 @@ if args.demo:
     CAMERA_SETTINGS = {
         'camera_0': {
             'colorspace': 'BGR',
-            'quality': 100
+            'quality': 80
         },
         'camera_1': {
             'colorspace': 'BGR',
-            'quality': 100
+            'quality': 80
         },
     }
 else:

@@ -50,6 +50,8 @@ def create_pipeline(model_name):
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(40)
     camRgb.initialControl.setManualExposure(100000, 300)
+    camRgb.initialControl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
+    camRgb.initialControl.setManualFocus(100)
 
     # edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     # edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
