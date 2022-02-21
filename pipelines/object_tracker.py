@@ -3,6 +3,7 @@ import cv2
 import depthai as dai
 import uuid
 
+import imutils
 import numpy as np
 
 from common.config import *
@@ -25,6 +26,7 @@ def create_pipeline(model_name):
     # edgeManip = pipeline.createImageManip()
     objectTracker = pipeline.createObjectTracker()
     script = pipeline.create(dai.node.Script)
+    resizedFrame = pipeline.createImageManip()
 
     xoutRgb = pipeline.createXLinkOut()
     xoutRgbPreview = pipeline.createXLinkOut()
@@ -52,11 +54,13 @@ def create_pipeline(model_name):
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-    camRgb.setFps(40)
+    camRgb.setFps(30)
     camRgb.initialControl.setManualExposure(100000, 300)
     camRgb.initialControl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
     camRgb.initialControl.setManualFocus(100)
 
+    resizedFrame.initialConfig.setResize(int(1920 / 4), int(1080 / 4))
+    resizedFrame.setFrameType(dai.ImgFrame.Type.BGR888p)
     # edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     # edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 
@@ -86,7 +90,9 @@ def create_pipeline(model_name):
     camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
     camRgb.preview.link(xoutRgbPreview.input)
-    camRgb.video.link(xoutRgb.input)
+    # camRgb.video.link(xoutRgb.input)
+    camRgb.video.link(resizedFrame.inputImage)
+    resizedFrame.out.link(xoutRgb.input)
     # rgbControl.out.link(camRgb.inputControl)
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
@@ -156,7 +162,7 @@ def capture(device_info):
                 counters = json.loads(jsonText)
 
             bboxes = []
-            frame = cv2.resize(frame, (int(1920 / 4), int(1080 / 4)))
+            # frame = imutils.resize(frame, int(1920 / 4), int(1080 / 4), inter=cv2.INTER_LINEAR)
             x_offset = int((frame.shape[1] - frame.shape[0]) / 2.0)
             y_offset = 0
             for detection in detections:

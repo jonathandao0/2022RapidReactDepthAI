@@ -184,8 +184,8 @@ class GoalHost:
                     break
 
             if not found:
-                log.error("No Goal Cameras found. Polling again in 5 seconds...")
-                sleep(5)
+                log.error("No Goal Cameras found. Polling again...")
+                sleep(1)
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():

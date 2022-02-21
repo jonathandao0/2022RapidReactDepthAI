@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 import time
 
+import cv2
 import depthai as dai
 import uuid
+
+import imutils
+import numpy as np
 
 from common.config import *
 from pathlib import Path
@@ -118,19 +122,20 @@ def create_pipeline(model_name):
 
 
 def capture(device_info):
-    filePath = 'empty_file'
-    if ENABLE_RECORDING:
-        log.warning("VIDEO ENCODING ENABLED")
-        filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+    # filePath = 'empty_file'
+    # if ENABLE_RECORDING:
+    #     log.warning("VIDEO ENCODING ENABLED")
+    #     filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
 
-    with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
+    # with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
+    with dai.Device(pipeline, device_info) as device:
         # rgbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         edgeQueue = device.getOutputQueue("edge", 8, False)
 
-        if ENABLE_RECORDING:
-            qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
+        # if ENABLE_RECORDING:
+        #     qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
 
         # configQueue = device.getInputQueue('rgbCfg')
 
@@ -145,9 +150,9 @@ def capture(device_info):
             if inDet is not None:
                 detections = inDet.detections
 
-            if ENABLE_RECORDING:
-                while qRgbEnc.has():
-                    qRgbEnc.get().getData().tofile(videoFile)
+            # if ENABLE_RECORDING:
+            #     while qRgbEnc.has():
+            #         qRgbEnc.get().getData().tofile(videoFile)
 
             bboxes = []
             x_offset = 0

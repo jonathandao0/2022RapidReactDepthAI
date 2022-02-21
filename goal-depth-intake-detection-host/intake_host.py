@@ -54,7 +54,7 @@ class IntakeHost:
 
         self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
 
-        self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=(480, 270))
+        self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=None)
 
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
@@ -205,8 +205,8 @@ class IntakeHost:
                     break
 
             if not found:
-                log.error("No Intake Cameras found. Polling again in 5 seconds...")
-                sleep(5)
+                log.error("No Intake Cameras found. Polling again...")
+                sleep(1)
 
         while True:
             if self.run_thread is None or not self.run_thread.is_alive():
