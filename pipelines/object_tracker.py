@@ -93,7 +93,7 @@ def create_pipeline(model_name):
     # camRgb.video.link(xoutRgb.input)
     camRgb.video.link(resizedFrame.inputImage)
     resizedFrame.out.link(xoutRgb.input)
-    # rgbControl.out.link(camRgb.inputControl)
+
     # xinRgb.out.link(camRgb.inputConfig)
     detectionNetwork.out.link(xoutNN.input)
     detectionNetwork.passthrough.link(objectTracker.inputTrackerFrame)

@@ -2,21 +2,15 @@ import argparse
 import logging
 from importlib import import_module
 import socket
+from time import sleep
 
 from flask import Flask, render_template, Response
 
 import simplejpeg
 
-try:
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-
-    ip_address = s.getsockname()[0]
-except:
-    ip_address = '10.42.1.100'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-i', dest='hostname', default=ip_address, help='Set hostname (default: localhost)')
+parser.add_argument('-i', dest='hostname', default=None, help='Set hostname (default: localhost)')
 parser.add_argument('-p', dest='port', default=5802, type=int, help='Set port (default: 5802)')
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
 parser.add_argument('--demo', dest='demo', action="store_true", default=False, help='Enable Demo Mode')
@@ -85,6 +79,16 @@ def video_feed(feed_type, device):
 
 if __name__ == '__main__':
     hostname = args.hostname
+    while hostname is None:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+
+            hostname = s.getsockname()[0]
+        except:
+            pass
+        sleep(1)
+
     port = args.port
     debug = args.debug
 
