@@ -49,18 +49,19 @@ def create_pipeline(model_name):
     trackerOut.setStreamName("out")
 
     # Properties
-    camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
+    # camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
+    camRgb.setPreviewSize(1920, 1080)
     camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
-    camRgb.setFps(30)
+    camRgb.setFps(40)
     camRgb.initialControl.setManualExposure(100000, 300)
     camRgb.initialControl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
     camRgb.initialControl.setManualFocus(100)
 
-    resizedFrame.initialConfig.setResize(int(1920 / 4), int(1080 / 4))
-    resizedFrame.setFrameType(dai.ImgFrame.Type.BGR888p)
+    resizedFrame.initialConfig.setResizeThumbnail(NN_IMG_SIZE, NN_IMG_SIZE)
+    # resizedFrame.setFrameType(dai.ImgFrame.Type.BGR888p)
     # edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
     # edgeManip.initialConfig.setResize(NN_IMG_SIZE, NN_IMG_SIZE)
 
@@ -87,11 +88,13 @@ def create_pipeline(model_name):
     detectionNetwork.input.setBlocking(False)
 
     # Linking
-    camRgb.preview.link(detectionNetwork.input)
+    # camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
-    camRgb.preview.link(xoutRgbPreview.input)
+    # camRgb.preview.link(xoutRgbPreview.input)
     # camRgb.video.link(xoutRgb.input)
-    camRgb.video.link(resizedFrame.inputImage)
+
+    camRgb.preview.link(resizedFrame.inputImage)
+    resizedFrame.out.link(detectionNetwork.input)
     resizedFrame.out.link(xoutRgb.input)
 
     # xinRgb.out.link(camRgb.inputConfig)
@@ -163,6 +166,7 @@ def capture(device_info):
 
             bboxes = []
             # frame = imutils.resize(frame, int(1920 / 4), int(1080 / 4), inter=cv2.INTER_LINEAR)
+            frame = frame[54:324, 0:NN_IMG_SIZE]
             x_offset = int((frame.shape[1] - frame.shape[0]) / 2.0)
             y_offset = 0
             for detection in detections:

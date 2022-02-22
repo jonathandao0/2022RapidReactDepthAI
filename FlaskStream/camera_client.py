@@ -20,9 +20,9 @@ class ImageZMQClient:
         self.resolution = resolution
         self.fps_limit = fps_limit
 
-        # th = threading.Thread(target=self.run)
-        # th.daemon = True
-        # th.start()
+        th = threading.Thread(target=self.run)
+        th.daemon = True
+        th.start()
 
     def init_sender(self, port):
         sender = imagezmq.ImageSender(connect_to='tcp://localhost:{}'.format(port))
@@ -39,14 +39,14 @@ class ImageZMQClient:
         self.frame_to_send = frame
 
         # Non-threaded code
-        if self.resolution is not None:
-            frame = imutils.resize(frame, self.resolution[0], self.resolution[1], inter=cv2.INTER_LINEAR)
-        try:
-            reply = self.sender.send_image(self.camera_id, frame)
-        except (zmq.ZMQError, zmq.ContextTerminated, zmq.Again):
-            self.sender.close()
-            log.debug('Restarting ImageSender.')
-            self.sender = self.init_sender(self.port)
+        # if self.resolution is not None:
+        #     frame = imutils.resize(frame, self.resolution[0], self.resolution[1], inter=cv2.INTER_LINEAR)
+        # try:
+        #     reply = self.sender.send_image(self.camera_id, frame)
+        # except (zmq.ZMQError, zmq.ContextTerminated, zmq.Again):
+        #     self.sender.close()
+        #     log.debug('Restarting ImageSender.')
+        #     self.sender = self.init_sender(self.port)
 
     def run(self):
         while True:

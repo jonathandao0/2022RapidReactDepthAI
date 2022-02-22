@@ -12,7 +12,7 @@ from PIL import Image
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from pipelines import goal_edge_depth_detection
+from pipelines import goal_depth_detection
 import logging
 
 from networktables.util import NetworkTables
@@ -64,18 +64,18 @@ class GoalHost:
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }
 
-        self.goal_pipeline, self.goal_labels = goal_edge_depth_detection.create_pipeline(MODEL_NAME)
+        self.goal_pipeline, self.goal_labels = goal_depth_detection.create_pipeline(MODEL_NAME)
 
-        self.oak_d_stream = ImageZMQClient("camera 0", 5808)
+        self.oak_d_stream = ImageZMQClient("camera 0", 5808, resolution=None)
 
-    def parse_goal_frame(self, frame, edgeFrame, bboxes):
+    def parse_goal_frame(self, frame, bboxes):
         valid_labels = ['upper_hub']
 
         nt_tab = self.device_info['nt_tab']
 
-        edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
-        kernel = np.ones((3, 3), np.uint8)
-        edgeFrame = cv2.morphologyEx(edgeFrame, cv2.MORPH_CLOSE, kernel, iterations=1)
+        # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
+        # kernel = np.ones((3, 3), np.uint8)
+        # edgeFrame = cv2.morphologyEx(edgeFrame, cv2.MORPH_CLOSE, kernel, iterations=1)
 
         if len(bboxes) == 0:
             nt_tab.putString("target_label", "None")
@@ -97,8 +97,8 @@ class GoalHost:
                 target_x = bbox['x_mid']
                 target_y = bbox['y_mid']
 
-                horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
-                vertical_angle_offset = -(target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 1080
+                horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / NN_IMG_SIZE
+                vertical_angle_offset = -(target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 234
 
                 if abs(horizontal_angle_offset) > 30:
                     log.debug("Invalid angle offset. Setting it to 0")
@@ -119,8 +119,8 @@ class GoalHost:
                 nt_tab.putNumber("ty", vertical_angle_offset)
                 nt_tab.putNumber("tz", bbox['depth_z'])
 
-                cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (255, 255, 255), 2)
+                # cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                #               (255, 255, 255), 2)
                 cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                               (255, 255, 255), 2)
 
@@ -138,18 +138,18 @@ class GoalHost:
         fps = self.device_info['fps_handler']
         fps.nextIter()
 
-        cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        # cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
         cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         if not args.demo:
             # gray_frame = Image.fromarray(edgeFrame, 'L')
-            gray_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)
+            # gray_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)
 
-            self.oak_d_stream.send_frame(gray_frame)
+            self.oak_d_stream.send_frame(frame)
         else:
             self.oak_d_stream.send_frame(frame)
 
-        return frame, edgeFrame, bboxes
+        return frame, bboxes
 
     def init_networktables(self):
         NetworkTables.startClientTeam(4201)
@@ -208,8 +208,8 @@ class GoalHost:
 
     def run_goal_detection(self, device):
         try:
-            for frame, edgeFrame, bboxes in goal_edge_depth_detection.capture(device):
-                self.parse_goal_frame(frame, edgeFrame, bboxes)
+            for frame, bboxes in goal_depth_detection.capture(device):
+                self.parse_goal_frame(frame, bboxes)
         except Exception as e:
             log.error("Exception {}".format(e))
 
@@ -220,8 +220,8 @@ class GoalHostDebug(GoalHost):
         super().__init__()
         log.setLevel(logging.DEBUG)
 
-    def parse_goal_frame(self, frame, edgeFrame, bboxes):
-        frame, edgeFrame, bboxes = super().parse_goal_frame(frame, edgeFrame, bboxes)
+    def parse_goal_frame(self, frame, bboxes):
+        frame, bboxes = super().parse_goal_frame(frame, bboxes)
         valid_labels = ['upper_hub']
 
         for bbox in bboxes:
@@ -230,12 +230,12 @@ class GoalHostDebug(GoalHost):
             if target_label not in valid_labels:
                 continue
 
-            label_frame(edgeFrame, bbox)
+            # label_frame(edgeFrame, bbox)
 
             if not args.demo:
                 label_frame(frame, bbox)
 
-        cv2.imshow("OAK-D Goal Edge", edgeFrame)
+        # cv2.imshow("OAK-D Goal Edge", edgeFrame)
         cv2.imshow("OAK-D Goal ", frame)
 
         key = cv2.waitKey(1)

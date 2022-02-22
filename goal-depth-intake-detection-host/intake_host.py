@@ -59,11 +59,11 @@ class IntakeHost:
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
 
-        x_min_b = int((1920 / 4 - 1080 / 4) / 2.0)
-        y_min_b = int((1080 / 4 - 1080 / 4) / 2.0)
-        x_max_b = int((1920 / 4 - 1080 / 4) / 2.0 + (1080 / 4))
-        y_max_b = int((1080 / 4 - 1080 / 4) / 2.0 + (1080 / 4))
-        cv2.rectangle(frame, (x_min_b, y_min_b), (x_max_b, y_max_b), (0, 0, 0), 2)
+        # x_min_b = int((1920 / 4 - 1080 / 4) / 2.0)
+        # y_min_b = int((1080 / 4 - 1080 / 4) / 2.0)
+        # x_max_b = int((1920 / 4 - 1080 / 4) / 2.0 + (1080 / 4))
+        # y_max_b = int((1080 / 4 - 1080 / 4) / 2.0 + (1080 / 4))
+        # cv2.rectangle(frame, (x_min_b, y_min_b), (x_max_b, y_max_b), (0, 0, 0), 2)
 
         alliance_color = self.nt_controls.getString("alliance_string", "Invalid")
         tracking_type = self.nt_vision.getNumber("intake_tracking_type", 0)
@@ -142,7 +142,6 @@ class IntakeHost:
                 cv2.putText(frame, "{}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        cv2.rectangle(frame, (0, 0), (frame.shape[1], 35),  (0, 0, 0), -1)
         if tracking_type == 1:
             if alliance_color.lower() == "red":
                 color = (0, 0, 255)
