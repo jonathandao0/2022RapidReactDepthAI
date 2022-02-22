@@ -80,6 +80,7 @@ def create_pipeline(model_name):
     detectionNetwork.setBlobPath(str(blob_path))
     detectionNetwork.setConfidenceThreshold(nn_config.confidence)
     # detectionNetwork.setConfidenceThreshold(0.5)
+    detectionNetwork.setConfidenceThreshold(0.1)
     detectionNetwork.setNumClasses(nn_config.metadata["classes"])
     detectionNetwork.setCoordinateSize(nn_config.metadata["coordinates"])
     detectionNetwork.setAnchors(nn_config.metadata["anchors"])
@@ -151,7 +152,7 @@ def capture(device_info):
             #     while qRgbEnc.has():
             #         qRgbEnc.get().getData().tofile(videoFile)
 
-            frame = frame[91:324, 0:NN_IMG_SIZE]
+            # frame = frame[91:324, 0:NN_IMG_SIZE]
             bboxes = []
             x_offset = 0
             y_offset = 0

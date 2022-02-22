@@ -166,7 +166,7 @@ def capture(device_info):
 
             bboxes = []
             # frame = imutils.resize(frame, int(1920 / 4), int(1080 / 4), inter=cv2.INTER_LINEAR)
-            frame = frame[54:324, 0:NN_IMG_SIZE]
+            # frame = frame[54:324, 0:NN_IMG_SIZE]
             x_offset = int((frame.shape[1] - frame.shape[0]) / 2.0)
             y_offset = 0
             for detection in detections:

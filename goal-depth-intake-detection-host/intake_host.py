@@ -150,24 +150,25 @@ class IntakeHost:
             else:
                 color = (255, 255, 255)
 
-            cv2.putText(frame, "Tracking Launchpad", (60, 30), cv2.FONT_HERSHEY_DUPLEX, 1, color, 2)
+            cv2.putText(frame, "Tracking Launchpad", (60, 84), cv2.FONT_HERSHEY_DUPLEX, 1, color, 2)
         else:
             red_offset = nt_tab.getNumber("red_counter_offset", 0)
             blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
             red_count = counters['red_cargo']
             blue_count = counters['blue_cargo']
 
-            cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
-            cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 30), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
+            cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 84), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+            cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 84), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
 
             nt_tab.putNumber("red_count", red_count)
             nt_tab.putNumber("blue_count", blue_count)
 
         fps = self.device_info['fps_handler']
         fps.nextIter()
-        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 74), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
 
-        self.oak_1_stream.send_frame(frame)
+        output_frame = frame[54:324, 0:NN_IMG_SIZE]
+        self.oak_1_stream.send_frame(output_frame)
 
         return frame, filtered_bboxes, counters
 

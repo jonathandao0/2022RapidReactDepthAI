@@ -139,15 +139,16 @@ class GoalHost:
         fps.nextIter()
 
         # cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 111), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        if not args.demo:
-            # gray_frame = Image.fromarray(edgeFrame, 'L')
-            # gray_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)
-
-            self.oak_d_stream.send_frame(frame)
-        else:
-            self.oak_d_stream.send_frame(frame)
+        # if not args.demo:
+        #     # gray_frame = Image.fromarray(edgeFrame, 'L')
+        #     # gray_frame = cv2.cvtColor(edgeFrame, cv2.COLOR_GRAY2RGB)
+        #     output_frame = frame[54:324, 0:NN_IMG_SIZE]
+        #     self.oak_d_stream.send_frame(output_frame)
+        # else:
+        output_frame = frame[91:324, 0:NN_IMG_SIZE]
+        self.oak_d_stream.send_frame(output_frame)
 
         return frame, bboxes
 

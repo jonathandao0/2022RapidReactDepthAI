@@ -35,11 +35,11 @@ else:
     CAMERA_SETTINGS = {
         'camera_0': {
             'colorspace': 'BGR',
-            'quality': 30
+            'quality': 10
         },
         'camera_1': {
             'colorspace': 'BGR',
-            'quality': 30
+            'quality': 20
         },
     }
 
