@@ -58,7 +58,8 @@ class GoalHost:
             'name': "OAK-D_Goal",
             'valid_ids': ["184430105169091300",
                           "18443010B1FA0C1300",
-                          "18443010A1D0AA1200"],
+                          "18443010A1D0AA1200",
+                          "14442C1091398FD000"],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
@@ -68,7 +69,7 @@ class GoalHost:
 
         self.oak_d_stream = ImageZMQClient("camera 0", 5808, resolution=None)
 
-    def parse_goal_frame(self, frame, bboxes):
+    def parse_goal_frame(self, frame, bboxes, metadata):
         valid_labels = ['upper_hub']
 
         nt_tab = self.device_info['nt_tab']
@@ -118,6 +119,7 @@ class GoalHost:
                 nt_tab.putNumber("tx", horizontal_angle_offset)
                 nt_tab.putNumber("ty", vertical_angle_offset)
                 nt_tab.putNumber("tz", bbox['depth_z'])
+                nt_tab.putNumber("timestamp", metadata['timestamp'].total_seconds())
 
                 # cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                 #               (255, 255, 255), 2)
@@ -150,7 +152,7 @@ class GoalHost:
         output_frame = frame[91:324, 0:NN_IMG_SIZE]
         self.oak_d_stream.send_frame(output_frame)
 
-        return frame, bboxes
+        return frame, bboxes, metadata
 
     def init_networktables(self):
         NetworkTables.startClientTeam(4201)
@@ -209,8 +211,8 @@ class GoalHost:
 
     def run_goal_detection(self, device):
         try:
-            for frame, bboxes in goal_depth_detection.capture(device):
-                self.parse_goal_frame(frame, bboxes)
+            for frame, bboxes, metadata in goal_depth_detection.capture(device):
+                self.parse_goal_frame(frame, bboxes, metadata)
         except Exception as e:
             log.error("Exception {}".format(e))
 
@@ -221,8 +223,8 @@ class GoalHostDebug(GoalHost):
         super().__init__()
         log.setLevel(logging.DEBUG)
 
-    def parse_goal_frame(self, frame, bboxes):
-        frame, bboxes = super().parse_goal_frame(frame, bboxes)
+    def parse_goal_frame(self, frame, bboxes, metadata):
+        frame, bboxes, metadata = super().parse_goal_frame(frame, bboxes, metadata)
         valid_labels = ['upper_hub']
 
         for bbox in bboxes:

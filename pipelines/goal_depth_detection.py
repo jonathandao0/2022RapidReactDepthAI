@@ -35,6 +35,7 @@ def create_pipeline(model_name):
     # xoutRgbPreview = pipeline.createXLinkOut()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
+    xoutMeta = pipeline.createXLinkOut()
     xoutResize = pipeline.createXLinkOut()
 
     # xoutRgb.setStreamName("rgb")
@@ -42,6 +43,8 @@ def create_pipeline(model_name):
     # xinRgb.setStreamName("rgbCfg")
     xoutNN.setStreamName("detections")
     xoutResize.setStreamName("resize")
+    xoutMeta.setStreamName("metadata")
+    xoutMeta.setMetadataOnly(True)
 
     # Properties
     camRgb.setPreviewSize(1920, 1080)
@@ -101,6 +104,7 @@ def create_pipeline(model_name):
     resizeManip.out.link(xoutResize.input)
 
     detectionNetwork.out.link(xoutNN.input)
+    detectionNetwork.passthrough.link(xoutMeta.input)
 
     monoLeft.out.link(stereo.left)
     monoRight.out.link(stereo.right)
@@ -131,6 +135,7 @@ def capture(device_info):
         # previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
         resizeQueue = device.getOutputQueue("resize", 8, False)
+        metadataQueue = device.getOutputQueue("metadata", 8, False)
 
         # if ENABLE_RECORDING:
         #     qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
@@ -141,6 +146,7 @@ def capture(device_info):
             # frame = rgbQueue.get().getCvFrame()
             # frame = previewQueue.get().getCvFrame()
             inDet = detectionNNQueue.tryGet()
+            timestamp = metadataQueue.get().getTimestampDevice()
             # edgeFrame = edgeRgbQueue.get().getFrame()
             frame = resizeQueue.get().getCvFrame()
 
@@ -175,7 +181,11 @@ def capture(device_info):
                     'depth_z': detection.spatialCoordinates.z / 1000,
                 })
 
-            yield frame, bboxes
+            metadata = {
+                'timestamp': timestamp
+            }
+
+            yield frame, bboxes, metadata
 
 
 def normalize_detections(frame, bbox):
