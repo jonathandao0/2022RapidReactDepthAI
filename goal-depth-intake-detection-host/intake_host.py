@@ -167,7 +167,8 @@ class IntakeHost:
             nt_tab.putNumber("red_count", red_count)
             nt_tab.putNumber("blue_count", blue_count)
 
-        NetworkTables.flush()
+        if len(filtered_bboxes) > 0:
+            NetworkTables.flush()
 
         fps = self.device_info['fps_handler']
         fps.nextIter()
