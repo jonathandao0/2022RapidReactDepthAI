@@ -124,6 +124,7 @@ class GoalHost:
                 nt_tab.putNumber("ty", vertical_angle_offset)
                 nt_tab.putNumber("tz", bbox['depth_z'])
                 nt_tab.putNumber("timestamp", metadata['timestamp'].total_seconds())
+                NetworkTables.flush()
 
                 # cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                 #               (255, 255, 255), 2)

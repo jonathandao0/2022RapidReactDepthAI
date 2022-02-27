@@ -53,7 +53,11 @@ def create_pipeline(model_name):
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(30)
+    # Exposure time (microseconds), ISO Sensitivity (100-1600)
     camRgb.initialControl.setManualExposure(100000, 300)
+    # Temperature in Kelvins (1000-12000)
+    camRgb.initialControl.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
+    camRgb.initialControl.setManualWhiteBalance(3000)
 
     resizeManip.initialConfig.setResizeThumbnail(NN_IMG_SIZE, NN_IMG_SIZE)
     # resizeManip.initialConfig.setFrameType(dai.ImgFrame.Type.BGR888p)

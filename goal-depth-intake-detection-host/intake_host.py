@@ -167,6 +167,8 @@ class IntakeHost:
             nt_tab.putNumber("red_count", red_count)
             nt_tab.putNumber("blue_count", blue_count)
 
+        NetworkTables.flush()
+
         fps = self.device_info['fps_handler']
         fps.nextIter()
         cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 74), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
