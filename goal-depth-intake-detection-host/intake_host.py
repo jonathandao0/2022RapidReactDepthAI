@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import math
 import operator
 import threading
 import numpy as np
@@ -119,7 +120,10 @@ class IntakeHost:
 
         target_angles = []
         for bbox in filtered_bboxes:
-            angle_offset = (bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / 1920
+            # Pinhole camera model. See 254's 2016 vision talk
+            horizontal_angle_radians = math.atan((bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
+            horizontal_angle_offset = math.degrees(horizontal_angle_radians)
+
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
 
             if args.demo:
@@ -128,8 +132,8 @@ class IntakeHost:
                 cv2.putText(frame, "{}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-            target_angles.append(angle_offset)
-            bbox['angle_offset'] = angle_offset
+            target_angles.append(horizontal_angle_offset)
+            bbox['angle_offset'] = horizontal_angle_offset
 
         nt_tab.putNumberArray("ta", target_angles)
 

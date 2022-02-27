@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import math
 import threading
 import numpy as np
 from time import sleep
@@ -98,10 +99,13 @@ class GoalHost:
                 target_x = bbox['x_mid']
                 target_y = bbox['y_mid']
 
-                horizontal_angle_offset = (target_x - (NN_IMG_SIZE / 2.0)) * 68.7938003540039 / NN_IMG_SIZE
-                vertical_angle_offset = -(target_y - (NN_IMG_SIZE / 2.0)) * 38.6965126991271 / 234
+                # Pinhole camera model. See 254's 2016 vision talk
+                horizontal_angle_radians = math.atan((target_x - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
+                horizontal_angle_offset = math.degrees(horizontal_angle_radians)
+                vertical_angle_radians = -math.atan((target_y - (NN_IMG_SIZE / 2.0)) / (234 / (2 * math.tan(math.radians(54.0) / 2))))
+                vertical_angle_offset = math.degrees(vertical_angle_radians)
 
-                if abs(horizontal_angle_offset) > 30:
+                if abs(horizontal_angle_offset) > 40:
                     log.debug("Invalid angle offset. Setting it to 0")
                     nt_tab.putNumber("tv", 0)
                     horizontal_angle_offset = 0
@@ -109,7 +113,7 @@ class GoalHost:
                     log.debug("Found target '{}'\tX Angle Offset: {}".format(target_label, horizontal_angle_offset))
                     nt_tab.putNumber("tv", 1)
 
-                if abs(horizontal_angle_offset) > 30 and abs(vertical_angle_offset) > 30:
+                if abs(horizontal_angle_offset) > 40 and abs(vertical_angle_offset) > 30:
                     log.debug("Target not valid for distance measurements")
                     nt_tab.putNumber("tg", 0)
                 else:

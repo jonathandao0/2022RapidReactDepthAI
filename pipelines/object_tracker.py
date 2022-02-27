@@ -126,10 +126,10 @@ def create_pipeline(model_name):
 
 def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
-        rqbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
-        previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
-        detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
-        # # edgeRgbQueue = device.getOutputQueue("edgeRgb", 8, False)
+        rqbQueue = device.getOutputQueue(name="rgb", maxSize=1, blocking=False)
+        previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=1, blocking=False)
+        detectionNNQueue = device.getOutputQueue(name="detections", maxSize=1, blocking=False)
+        # # edgeRgbQueue = device.getOutputQueue("edgeRgb", 1, False)
         # edgeQueue = device.getOutputQueue("edge", 8, False)
         # edgeCfgQueue = device.getInputQueue("edgeCfg")
         outQueue = device.getOutputQueue("out")

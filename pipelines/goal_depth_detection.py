@@ -133,9 +133,9 @@ def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
         # rgbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         # previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
-        detectionNNQueue = device.getOutputQueue(name="detections", maxSize=4, blocking=False)
-        resizeQueue = device.getOutputQueue("resize", 8, False)
-        metadataQueue = device.getOutputQueue("metadata", 8, False)
+        detectionNNQueue = device.getOutputQueue(name="detections", maxSize=1, blocking=False)
+        resizeQueue = device.getOutputQueue("resize", 1, False)
+        metadataQueue = device.getOutputQueue("metadata", 1, False)
 
         # if ENABLE_RECORDING:
         #     qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
