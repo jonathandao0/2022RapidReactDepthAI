@@ -9,7 +9,15 @@
 .img-container {
   float: center;
   width: 100%;
-  padding: 5px;
+  padding: 0px;
+}
+
+.img-overlay {
+  position:relative;
+  top:-45px;
+  float: right;
+  width: 20%;
+  padding: 0px;
 }
 
 </style>
@@ -17,10 +25,10 @@
 <body>
 <div class="clearfix">
   <div class="img-container" align="center">
-        <img src="{{ url_for('video_feed', feed_type='camera', device=0) }}" class="center"  style="border:1px solid black;width:100%" alt="Outtake Feed">
-  </div>
-  <div class="img-container" align="center">
         <img src="{{ url_for('video_feed', feed_type='camera', device=1) }}" class="center"  style="border:1px solid black;width:100%" alt="Intake Feed">
+  </div>
+  <div class="img-overlay" align="center">
+        <img src="{{ url_for('video_feed', feed_type='camera', device=0) }}" class="center"  style="border:1px solid black;width:100%" alt="Outtake Feed">
   </div>
 </div>
 

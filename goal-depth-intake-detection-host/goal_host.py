@@ -154,8 +154,7 @@ class GoalHost:
         #     output_frame = frame[54:324, 0:NN_IMG_SIZE]
         #     self.oak_d_stream.send_frame(output_frame)
         # else:
-        # output_frame = frame[91:324, 0:NN_IMG_SIZE]
-        output_frame = frame[91:240, 0:NN_IMG_SIZE]
+        output_frame = frame[91:324, 0:NN_IMG_SIZE]
         self.oak_d_stream.send_frame(output_frame)
 
         return frame, bboxes, metadata
