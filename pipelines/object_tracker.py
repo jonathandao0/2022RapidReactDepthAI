@@ -62,7 +62,7 @@ def create_pipeline(model_name):
     camRgb.initialControl.setManualExposure(100000, 300)
     # Temperature in Kelvins (1000-12000)
     camRgb.initialControl.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
-    camRgb.initialControl.setManualWhiteBalance(3000)
+    camRgb.initialControl.setManualWhiteBalance(4000)
 
     resizedFrame.initialConfig.setResizeThumbnail(NN_IMG_SIZE, NN_IMG_SIZE)
     # resizedFrame.setFrameType(dai.ImgFrame.Type.BGR888p)
