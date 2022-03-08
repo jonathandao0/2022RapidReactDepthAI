@@ -47,7 +47,7 @@ def create_pipeline(model_name):
     xoutMeta.setMetadataOnly(True)
 
     # Properties
-    camRgb.setPreviewSize(1920, 1080)
+    camRgb.setPreviewSize(416, 234)
     # camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
@@ -87,7 +87,6 @@ def create_pipeline(model_name):
     detectionNetwork.setBlobPath(str(blob_path))
     detectionNetwork.setConfidenceThreshold(nn_config.confidence)
     # detectionNetwork.setConfidenceThreshold(0.5)
-    detectionNetwork.setConfidenceThreshold(0.1)
     detectionNetwork.setNumClasses(nn_config.metadata["classes"])
     detectionNetwork.setCoordinateSize(nn_config.metadata["coordinates"])
     detectionNetwork.setAnchors(nn_config.metadata["anchors"])
