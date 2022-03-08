@@ -50,12 +50,13 @@ def create_pipeline(model_name):
 
     # Properties
     # camRgb.setPreviewSize(NN_IMG_SIZE, NN_IMG_SIZE)
-    camRgb.setPreviewSize(1920, 1080)
+    camRgb.setPreviewSize(416, 234)
     camRgb.setImageOrientation(dai.CameraImageOrientation.ROTATE_180_DEG)
     camRgb.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
     camRgb.setInterleaved(False)
     camRgb.setColorOrder(dai.ColorCameraProperties.ColorOrder.BGR)
     camRgb.setFps(40)
+    camRgb.setIspScale(13, 60)
     camRgb.initialControl.setAutoFocusMode(dai.CameraControl.AutoFocusMode.OFF)
     camRgb.initialControl.setManualFocus(100)
     # Exposure time (microseconds), ISO Sensitivity (100-1600)
@@ -64,6 +65,7 @@ def create_pipeline(model_name):
     camRgb.initialControl.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
     camRgb.initialControl.setManualWhiteBalance(4000)
 
+    resizedFrame.setMaxOutputFrameSize(519168)   # 416*416*3
     resizedFrame.initialConfig.setResizeThumbnail(NN_IMG_SIZE, NN_IMG_SIZE)
     # resizedFrame.setFrameType(dai.ImgFrame.Type.BGR888p)
     # edgeDetectorRgb.setMaxOutputFrameSize(camRgb.getVideoWidth() * camRgb.getVideoHeight())
