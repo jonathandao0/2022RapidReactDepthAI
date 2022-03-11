@@ -64,6 +64,7 @@ def create_pipeline(model_name):
     # Temperature in Kelvins (1000-12000)
     camRgb.initialControl.setAutoWhiteBalanceMode(dai.CameraControl.AutoWhiteBalanceMode.OFF)
     camRgb.initialControl.setManualWhiteBalance(4000)
+    camRgb.initialControl.setBrightness(-2)
 
     resizedFrame.setMaxOutputFrameSize(519168)   # 416*416*3
     resizedFrame.initialConfig.setResizeThumbnail(NN_IMG_SIZE, NN_IMG_SIZE)
