@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="refresh" content="3">
+<script>
+function autoRefresh()
+{
+    window.location = window.location.href;
+}
+ setInterval('autoRefresh()', 3000);
+</script>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+.clearfix {
+  display: flex;
+  width: 100%;
+}
+
+.img-container {
+  width: 70%;
+  padding: 0px;
+}
+
+.img-overlay {
+  width: 30%;
+  padding: 0px;
+}
+
+</style>
+</head>
+<body>
+<div class="clearfix">
+  <div class="img-container" align="center">
+        <img src="{{ url_for('video_feed', feed_type='camera', device=1) }}" class="center"  style="border:1px solid black;width:100%" alt="Intake Feed">
+  </div>
+  <div class="img-overlay" align="center">
+        <img src="{{ url_for('video_feed', feed_type='camera', device=0) }}" class="center"  style="border:1px solid black;width:100%" alt="Outtake Feed">
+  </div>
+</div>
+
+</body>
+</html>

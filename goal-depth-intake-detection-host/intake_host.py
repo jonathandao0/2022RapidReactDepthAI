@@ -10,6 +10,7 @@ from time import sleep
 import cv2
 import depthai as dai
 
+from CsCoreStream.cscore_client import CsCoreClient
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
@@ -55,7 +56,8 @@ class IntakeHost:
 
         self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
 
-        self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=None)
+        # self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=None)
+        self.oak_1_stream = CsCoreClient("camera 1", 5809, resolution=(271, 416))
 
     def parse_intake_frame(self, frame, bboxes, counters):
         # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]

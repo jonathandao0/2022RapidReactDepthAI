@@ -12,6 +12,7 @@ import depthai as dai
 from PIL import Image
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
+from CsCoreStream.cscore_client import CsCoreClient
 
 from pipelines import goal_depth_detection
 import logging
@@ -57,10 +58,11 @@ class GoalHost:
 
         self.device_info = {
             'name': "OAK-D_Goal",
-            'valid_ids': ["184430105169091300",
+            'valid_ids': [ # "184430105169091300",
                           "18443010B1FA0C1300",
                           "18443010A1D0AA1200",
-                          "14442C1091398FD000"],
+                          "14442C1091398FD000"
+                          ],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
@@ -68,10 +70,12 @@ class GoalHost:
 
         self.goal_pipeline, self.goal_labels = goal_depth_detection.create_pipeline(MODEL_NAME)
 
-        self.oak_d_stream = ImageZMQClient("camera 0", 5808, resolution=None)
+        # self.oak_d_stream = ImageZMQClient("camera 0", 5808, resolution=None)
+        self.oak_d_stream = CsCoreClient("camera 0", 5808, resolution=(233, 416))
 
     def parse_goal_frame(self, frame, bboxes, metadata):
         valid_labels = ['upper_hub']
+        # valid_labels = ['lower_hub']
 
         nt_tab = self.device_info['nt_tab']
 
@@ -231,6 +235,7 @@ class GoalHostDebug(GoalHost):
     def parse_goal_frame(self, frame, bboxes, metadata):
         frame, bboxes, metadata = super().parse_goal_frame(frame, bboxes, metadata)
         valid_labels = ['upper_hub']
+        # valid_labels = ['lower_hub']
 
         for bbox in bboxes:
             target_label = self.goal_labels[bbox['label']]

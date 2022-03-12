@@ -39,7 +39,7 @@ else:
         },
         'camera_1': {
             'colorspace': 'BGR',
-            'quality': 20
+            'quality': 10
         },
     }
 
