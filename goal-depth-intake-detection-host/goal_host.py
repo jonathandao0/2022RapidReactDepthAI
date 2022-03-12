@@ -61,7 +61,8 @@ class GoalHost:
             'valid_ids': [ # "184430105169091300",
                           "18443010B1FA0C1300",
                           "18443010A1D0AA1200",
-                          "14442C1091398FD000"
+                          "14442C1091398FD000",
+                          "14442C10218CCCD200"
                           ],
             'id': None,
             'fps_handler': FPSHandler(),

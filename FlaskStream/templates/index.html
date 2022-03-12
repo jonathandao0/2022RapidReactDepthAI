@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta http-equiv="refresh" content="3">
+<script>
+function autoRefresh()
+{
+    window.location = window.location.href;
+}
+ setInterval('autoRefresh()', 3000);
+</script>
 <style>
 * {
   box-sizing: border-box;
@@ -34,6 +42,7 @@ img {
   </div>
   <div class="img-overlay" align="center">
     <img src="http://10.42.1.12:5808/stream.mjpg" object-fit="contain">
+    <img src="http://10.42.1.11:5800" object-fit="contain">
   </div>
 </div>
 </body>
