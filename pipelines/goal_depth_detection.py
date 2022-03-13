@@ -118,7 +118,8 @@ def create_pipeline(model_name):
 
     if ENABLE_RECORDING:
         videoEncoder = pipeline.createVideoEncoder()
-        videoEncoder.setDefaultProfilePreset(30, dai.VideoEncoderProperties.Profile.H265_MAIN)
+        videoEncoder.setDefaultProfilePreset(30, dai.VideoEncoderProperties.Profile.MJPEG)
+        videoEncoder.setLossless(True)
         videoOut = pipeline.create(dai.node.XLinkOut)
         videoOut.setStreamName("h265")
         camRgb.video.link(videoEncoder.input)

@@ -58,7 +58,7 @@ class GoalHost:
 
         self.device_info = {
             'name': "OAK-D_Goal",
-            'valid_ids': [ # "184430105169091300",
+            'valid_ids': ["184430105169091300",
                           "18443010B1FA0C1300",
                           "18443010A1D0AA1200",
                           "14442C1091398FD000",
