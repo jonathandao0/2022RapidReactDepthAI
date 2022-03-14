@@ -3,6 +3,7 @@
 import argparse
 import math
 import operator
+import platform
 import threading
 import numpy as np
 from time import sleep
@@ -10,15 +11,17 @@ from time import sleep
 import cv2
 import depthai as dai
 
-from CsCoreStream.cscore_client import CsCoreClient
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from pipelines import object_tracker
+from pipelines import object_depth_tracker
 import logging
 
 from networktables.util import NetworkTables
 from common.utils import FPSHandler
+
+if platform.system() != 'Windows':
+    from CsCoreStream.cscore_client import CsCoreClient
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -48,26 +51,22 @@ class IntakeHost:
             'name': "OAK-1_Intake",
             'valid_ids': ["14442C10C14F47D700",
                           "14442C1011043ED700",
-                          "184430105169091300"],
+                          "184430105169091300",
+                          "14442C10218CCCD200"],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
         }
 
-        self.intake_pipeline, self.intake_labels = object_tracker.create_pipeline(MODEL_NAME)
+        self.intake_pipeline, self.intake_labels = object_depth_tracker.create_pipeline(MODEL_NAME)
 
-        # self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=None)
-        self.oak_1_stream = CsCoreClient("camera 1", 5809, resolution=(271, 416))
+        if platform.system() == 'Windows':
+            self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=None)
+        else:
+            # self.oak_1_stream = CsCoreClient("camera 1", 5809, resolution=(271, 416))
+            self.oak_1_stream = CsCoreClient("camera 1", 5809, resolution=(209, 320))
 
     def parse_intake_frame(self, frame, bboxes, counters):
-        # edgeFrame = cv2.threshold(edgeFrame, 60, 255, cv2.THRESH_TOZERO)[1]
-
-        # x_min_b = int((1920 / 4 - 1080 / 4) / 2.0)
-        # y_min_b = int((1080 / 4 - 1080 / 4) / 2.0)
-        # x_max_b = int((1920 / 4 - 1080 / 4) / 2.0 + (1080 / 4))
-        # y_max_b = int((1080 / 4 - 1080 / 4) / 2.0 + (1080 / 4))
-        # cv2.rectangle(frame, (x_min_b, y_min_b), (x_max_b, y_max_b), (0, 0, 0), 2)
-
         alliance_color = self.nt_controls.getString("alliance_string", "Invalid")
         tracking_type = self.nt_vision.getNumber("intake_tracking_type", 0)
         self.target_lock = self.nt_vision.getNumber("intake_target_lock", 0)
@@ -121,6 +120,7 @@ class IntakeHost:
                     break
 
         target_angles = []
+        target_distances = []
         for bbox in filtered_bboxes:
             # Pinhole camera model. See 254's 2016 vision talk
             horizontal_angle_radians = math.atan((bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
@@ -135,9 +135,11 @@ class IntakeHost:
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
             target_angles.append(horizontal_angle_offset)
+            target_distances.append(bbox['depth_z'])
             bbox['angle_offset'] = horizontal_angle_offset
 
         nt_tab.putNumberArray("ta", target_angles)
+        nt_tab.putNumberArray("tz", target_distances)
 
         for bbox in null_bboxes:
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (125, 125, 125), 2)
@@ -148,35 +150,36 @@ class IntakeHost:
                 cv2.putText(frame, "{}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-        if tracking_type == 1:
-            if alliance_color.lower() == "red":
-                color = (0, 0, 255)
-            elif alliance_color.lower() == "blue":
-                color = (255, 0, 0)
-            else:
-                color = (255, 255, 255)
-
-            cv2.putText(frame, "Tracking Launchpad", (60, 84), cv2.FONT_HERSHEY_DUPLEX, 1, color, 2)
-        else:
-            red_offset = nt_tab.getNumber("red_counter_offset", 0)
-            blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
-            red_count = counters['red_cargo']
-            blue_count = counters['blue_cargo']
-
-            cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 84), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
-            cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 84), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
-
-            nt_tab.putNumber("red_count", red_count)
-            nt_tab.putNumber("blue_count", blue_count)
+        # if tracking_type == 1:
+        #     if alliance_color.lower() == "red":
+        #         color = (0, 0, 255)
+        #     elif alliance_color.lower() == "blue":
+        #         color = (255, 0, 0)
+        #     else:
+        #         color = (255, 255, 255)
+        #
+        #     cv2.putText(frame, "Tracking Launchpad", (60, 84), cv2.FONT_HERSHEY_DUPLEX, 1, color, 2)
+        # else:
+        #     red_offset = nt_tab.getNumber("red_counter_offset", 0)
+        #     blue_offset = nt_tab.getNumber("blue_counter_offset", 0)
+        #     red_count = counters['red_cargo']
+        #     blue_count = counters['blue_cargo']
+        #
+        #     cv2.putText(frame, "RED:{:.1s}".format(str(red_count - red_offset)), (80, 84), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 255), 2)
+        #     cv2.putText(frame, "BLUE:{:.1s}".format(str(blue_count - blue_offset)), (200, 84), cv2.FONT_HERSHEY_DUPLEX, 1, (255, 0, 0), 2)
+        #
+        #     nt_tab.putNumber("red_count", red_count)
+        #     nt_tab.putNumber("blue_count", blue_count)
 
         if len(filtered_bboxes) > 0:
             NetworkTables.flush()
 
         fps = self.device_info['fps_handler']
         fps.nextIter()
-        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 74), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 110), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
 
-        output_frame = frame[54:324, 0:NN_IMG_SIZE]
+        # output_frame = frame[54:324, 0:NN_IMG_SIZE]
+        output_frame = frame[91:324, 0:NN_IMG_SIZE]
         self.oak_1_stream.send_frame(output_frame)
 
         return frame, filtered_bboxes, counters
@@ -238,7 +241,7 @@ class IntakeHost:
 
     def run_intake_detection(self, device):
         try:
-            for frame, bboxes, counters in object_tracker.capture(device):
+            for frame, bboxes, counters in object_depth_tracker.capture(device):
                 self.parse_intake_frame(frame, bboxes, counters)
         except Exception as e:
             log.error("Exception {}".format(e))
@@ -268,9 +271,11 @@ class IntakeHostDebug(IntakeHost):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "angle: {}".format(round(angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "size: {}".format(round(bbox['size'], 3)), (bbox['x_min'], bbox['y_min'] + 110),
+            cv2.putText(frame, "depth: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 130),
+            cv2.putText(frame, "size: {}".format(round(bbox['size'], 3)), (bbox['x_min'], bbox['y_min'] + 130),
+                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+            cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 150),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         # cv2.imshow("OAK-1 Intake Edge", edgeFrame)

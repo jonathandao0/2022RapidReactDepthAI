@@ -1,3 +1,5 @@
+import time
+
 import cscore
 import logging
 import threading
@@ -32,6 +34,7 @@ class CsCoreClient:
     def run(self):
         while True:
             if self.frame_to_send is not None:
+                start_time = time.time()
 
                 if self.resolution is not None:
                     resized_frame = imutils.resize(self.frame_to_send, self.resolution[0], self.resolution[1], inter=cv2.INTER_LINEAR)
@@ -39,3 +42,7 @@ class CsCoreClient:
                     resized_frame = self.frame_to_send
 
                 self.camera.putFrame(resized_frame)
+
+                end_time = time.time()
+
+                time.sleep(max(1./self.fps_limit - (end_time-start_time), 0))

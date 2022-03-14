@@ -13,7 +13,6 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-
 def create_pipeline(model_name):
     global pipeline
     log.debug("Creating DepthAI pipeline...")
@@ -115,18 +114,34 @@ def create_pipeline(model_name):
     monoRight.out.link(stereo.right)
     stereo.depth.link(detectionNetwork.inputDepth)
 
+    # Video encoder code
+    videoEncoder = pipeline.createVideoEncoder()
+    videoEncoder.setDefaultProfilePreset(30, dai.VideoEncoderProperties.Profile.MJPEG)
+    videoEncoder.setLossless(True)
+    videoOut = pipeline.create(dai.node.XLinkOut)
+    videoOut.setStreamName("h265")
+    camRgb.video.link(videoEncoder.input)
+    videoEncoder.bitstream.link(videoOut.input)
+
     log.debug("Pipeline created.")
 
     return pipeline, labels
 
 
 def capture(device_info):
-    with dai.Device(pipeline, device_info) as device:
+    filePath = 'empty_file'
+    if ENABLE_RECORDING:
+        log.warning("VIDEO ENCODING ENABLED")
+        filePath = 'recordings/goal/{}.h265'.format(time.strftime("%Y_%m_%d-%H_%M_%S"))
+
+    with dai.Device(pipeline, device_info) as device, open(filePath, 'wb') as videoFile:
         # rgbQueue = device.getOutputQueue(name="rgb", maxSize=4, blocking=False)
         # previewQueue = device.getOutputQueue(name="rgb_preview", maxSize=4, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=1, blocking=False)
         resizeQueue = device.getOutputQueue("resize", 1, False)
         metadataQueue = device.getOutputQueue("metadata", 1, False)
+
+        qRgbEnc = device.getOutputQueue('h265', maxSize=30, blocking=False)
 
         while True:
             # frame = rgbQueue.get().getCvFrame()
@@ -139,6 +154,9 @@ def capture(device_info):
             detections = []
             if inDet is not None:
                 detections = inDet.detections
+
+            while qRgbEnc.has():
+                qRgbEnc.get().getData().tofile(videoFile)
 
             # frame = frame[91:324, 0:NN_IMG_SIZE]
             bboxes = []

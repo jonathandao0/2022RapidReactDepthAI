@@ -68,3 +68,5 @@ class ImageZMQClient:
                 end_time = time.time()
 
                 time.sleep(max(1./self.fps_limit - (end_time-start_time), 0))
+            else:
+                time.sleep(1)

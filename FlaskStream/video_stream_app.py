@@ -1,5 +1,6 @@
 import argparse
 import logging
+import platform
 from importlib import import_module
 import socket
 from time import sleep
@@ -47,7 +48,10 @@ else:
 @app.route('/')
 def index():
     """Video streaming home page."""
-    return render_template('index.html')
+    if platform.system() == 'Windows':
+        return render_template('index_win.html')
+    else:
+        return render_template('index.html')
 
 
 def gen(camera_stream, feed_type, device):

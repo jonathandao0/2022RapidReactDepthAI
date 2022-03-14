@@ -3,6 +3,8 @@
 import argparse
 import math
 import threading
+import platform
+
 import numpy as np
 from time import sleep
 
@@ -12,13 +14,15 @@ import depthai as dai
 from PIL import Image
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
-from CsCoreStream.cscore_client import CsCoreClient
 
-from pipelines import goal_depth_detection
+from pipelines import goal_depth_detection, goal_depth_detection_recording
 import logging
 
 from networktables.util import NetworkTables
 from common.utils import FPSHandler
+
+if platform.system() != 'Windows':
+    from CsCoreStream.cscore_client import CsCoreClient
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -26,6 +30,8 @@ parser.add_argument('--demo', dest='demo', action="store_true", default=False, h
 args = parser.parse_args()
 
 log = logging.getLogger(__name__)
+
+ENABLE_RECORDING = False
 
 
 def label_frame(frame, bbox):
@@ -62,17 +68,21 @@ class GoalHost:
                           "18443010B1FA0C1300",
                           "18443010A1D0AA1200",
                           "14442C1091398FD000",
-                          "14442C10218CCCD200"
                           ],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-D_Goal")
         }
 
-        self.goal_pipeline, self.goal_labels = goal_depth_detection.create_pipeline(MODEL_NAME)
+        if ENABLE_RECORDING:
+            self.goal_pipeline, self.goal_labels = goal_depth_detection_recording.create_pipeline(MODEL_NAME)
+        else:
+            self.goal_pipeline, self.goal_labels = goal_depth_detection.create_pipeline(MODEL_NAME)
 
-        # self.oak_d_stream = ImageZMQClient("camera 0", 5808, resolution=None)
-        self.oak_d_stream = CsCoreClient("camera 0", 5808, resolution=(233, 416))
+        if platform.system() == 'Windows':
+            self.oak_d_stream = ImageZMQClient("camera 0", 5808, resolution=None)
+        else:
+            self.oak_d_stream = CsCoreClient("camera 0", 5808, resolution=(200, 200))
 
     def parse_goal_frame(self, frame, bboxes, metadata):
         valid_labels = ['upper_hub']
@@ -134,7 +144,7 @@ class GoalHost:
                 # cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
                 #               (255, 255, 255), 2)
                 cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (255, 255, 255), 2)
+                              (0, 255, 0), 2)
 
                 # cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
                 #            thickness=-1)
@@ -151,7 +161,7 @@ class GoalHost:
         fps.nextIter()
 
         # cv2.putText(edgeFrame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 111), cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
+        cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 20), cv2.FONT_HERSHEY_TRIPLEX, 1, (255, 255, 255))
 
         # if not args.demo:
         #     # gray_frame = Image.fromarray(edgeFrame, 'L')
@@ -159,8 +169,8 @@ class GoalHost:
         #     output_frame = frame[54:324, 0:NN_IMG_SIZE]
         #     self.oak_d_stream.send_frame(output_frame)
         # else:
-        output_frame = frame[91:324, 0:NN_IMG_SIZE]
-        self.oak_d_stream.send_frame(output_frame)
+        # output_frame = frame[91:324, 0:NN_IMG_SIZE]
+        self.oak_d_stream.send_frame(frame)
 
         return frame, bboxes, metadata
 
