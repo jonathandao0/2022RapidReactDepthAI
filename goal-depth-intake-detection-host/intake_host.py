@@ -14,14 +14,14 @@ import depthai as dai
 from FlaskStream.camera_client import ImageZMQClient
 from common.config import NN_IMG_SIZE, MODEL_NAME
 
-from pipelines import object_depth_tracker
+from pipelines import object_depth_detection
 import logging
 
 from networktables.util import NetworkTables
 from common.utils import FPSHandler
 
 if platform.system() != 'Windows':
-    from CsCoreStream.cscore_client import CsCoreClient
+    from CSCoreStream.cscore_client import CsCoreClient
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -58,7 +58,7 @@ class IntakeHost:
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
         }
 
-        self.intake_pipeline, self.intake_labels = object_depth_tracker.create_pipeline(MODEL_NAME)
+        self.intake_pipeline, self.intake_labels = object_depth_detection.create_pipeline(MODEL_NAME)
 
         if platform.system() == 'Windows':
             self.oak_1_stream = ImageZMQClient("camera 1", 5809, resolution=None)
@@ -241,7 +241,7 @@ class IntakeHost:
 
     def run_intake_detection(self, device):
         try:
-            for frame, bboxes, counters in object_depth_tracker.capture(device):
+            for frame, bboxes, counters in object_depth_detection.capture(device):
                 self.parse_intake_frame(frame, bboxes, counters)
         except Exception as e:
             log.error("Exception {}".format(e))

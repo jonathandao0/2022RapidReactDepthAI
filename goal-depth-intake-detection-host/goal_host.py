@@ -22,7 +22,7 @@ from networktables.util import NetworkTables
 from common.utils import FPSHandler
 
 if platform.system() != 'Windows':
-    from CsCoreStream.cscore_client import CsCoreClient
+    from CSCoreStream.cscore_client import CsCoreClient
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', dest='debug', action="store_true", default=False, help='Start in Debug Mode')
@@ -117,7 +117,7 @@ class GoalHost:
                 # Pinhole camera model. See 254's 2016 vision talk
                 horizontal_angle_radians = math.atan((target_x - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
                 horizontal_angle_offset = math.degrees(horizontal_angle_radians)
-                vertical_angle_radians = -math.atan((target_y - (NN_IMG_SIZE / 2.0)) / (234 / (2 * math.tan(math.radians(54.0) / 2))))
+                vertical_angle_radians = -math.atan((target_y - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(54.0) / 2))))
                 vertical_angle_offset = math.degrees(vertical_angle_radians)
 
                 if abs(horizontal_angle_offset) > 40:
