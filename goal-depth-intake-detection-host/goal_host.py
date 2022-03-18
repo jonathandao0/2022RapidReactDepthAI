@@ -65,7 +65,7 @@ class GoalHost:
 
         self.device_info = {
             'name': "OAK-D_Goal",
-            'valid_ids': ["184430105169091300",
+            'valid_ids': [#"184430105169091300",
                           "18443010B1FA0C1300",
                           "18443010A1D0AA1200",
                           "14442C1091398FD000",
@@ -132,7 +132,7 @@ class GoalHost:
                         horizontal_angle_offset = 0
                     else:
                         log.debug("Found target '{}'\tX Angle Offset: {}".format(self.goal_labels[bbox['label']], horizontal_angle_offset))
-                        # nt_tab.putNumber("tv", 1 if self.goal_labels[bbox['label']] == 'upper_hub' else 2)
+                        nt_tab.putNumber("tv", 1 if self.goal_labels[bbox['label']] == 'upper_hub' else 2)
 
                     if abs(horizontal_angle_offset) > 40 and abs(vertical_angle_offset) > 30:
                         log.debug("Target not valid for distance measurements")
