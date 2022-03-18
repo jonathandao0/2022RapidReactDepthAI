@@ -1,13 +1,21 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta http-equiv="refresh" content="3">
 <script>
-function autoRefresh()
-{
-    window.location = window.location.href;
+let refresh = function() {
+    let imgs = document.getElementsByTagName( 'img');
+
+    for ( let i = 0; i < imgs.length; i++) {
+        let src = imgs.item(i).getAttribute('data-src');
+        src += '&t=' + Date.now();
+        // looks like https://example:8084/?action=snapshot&t=19999999
+        imgs.item(i).setAttribute('src', src);
+
+    };
+
 }
- setInterval('autoRefresh()', 3000);
+
+window.setInterval( refresh, 5000);
 </script>
 <style>
 * {

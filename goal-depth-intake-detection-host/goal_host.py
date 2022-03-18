@@ -4,6 +4,7 @@ import argparse
 import math
 import threading
 import platform
+from operator import itemgetter
 
 import numpy as np
 from time import sleep
@@ -85,8 +86,7 @@ class GoalHost:
             self.oak_d_stream = CsCoreClient("camera 0", 5808, resolution=(200, 200))
 
     def parse_goal_frame(self, frame, bboxes, metadata):
-        valid_labels = ['upper_hub']
-        # valid_labels = ['lower_hub']
+        valid_labels = ['upper_hub', 'lower_hub']
 
         nt_tab = self.device_info['nt_tab']
 
@@ -94,6 +94,7 @@ class GoalHost:
         # kernel = np.ones((3, 3), np.uint8)
         # edgeFrame = cv2.morphologyEx(edgeFrame, cv2.MORPH_CLOSE, kernel, iterations=1)
 
+        filtered_bboxes = []
         if len(bboxes) == 0:
             nt_tab.putString("target_label", "None")
             nt_tab.putNumber("tv", 0)
@@ -101,61 +102,69 @@ class GoalHost:
             nt_tab.putNumber("ty", 0)
             nt_tab.putNumber("tz", 0)
         else:
-            for bbox in bboxes:
-                target_label = self.goal_labels[bbox['label']]
-                if target_label not in valid_labels:
-                    continue
+            if len(bboxes) > 0:
+                for bbox in bboxes:
+                    if self.goal_labels[bbox['label']] in valid_labels:
+                        filtered_bboxes.append(bbox)
 
-                # edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
+                if len(filtered_bboxes) > 1:
+                    filtered_bboxes.sort(key=lambda x: x['confidence'], reverse=True)
+                    filtered_bboxes.sort(key=lambda x: x['label'])
 
-                # if target_x == -999 or target_y == -999:
-                #     log.error("Error: Could not find target contour")
-                #     continue
-                target_x = bbox['x_mid']
-                target_y = bbox['y_mid']
+                for i, bbox in enumerate(filtered_bboxes):
+                    # edgeFrame, target_x, target_y = target_finder.find_largest_contour(edgeFrame, bbox)
 
-                # Pinhole camera model. See 254's 2016 vision talk
-                horizontal_angle_radians = math.atan((target_x - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
-                horizontal_angle_offset = math.degrees(horizontal_angle_radians)
-                vertical_angle_radians = -math.atan((target_y - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(54.0) / 2))))
-                vertical_angle_offset = math.degrees(vertical_angle_radians)
+                    # if target_x == -999 or target_y == -999:
+                    #     log.error("Error: Could not find target contour")
+                    #     continue
+                    target_x = bbox['x_mid']
+                    target_y = bbox['y_mid']
 
-                if abs(horizontal_angle_offset) > 40:
-                    log.debug("Invalid angle offset. Setting it to 0")
-                    nt_tab.putNumber("tv", 0)
-                    horizontal_angle_offset = 0
-                else:
-                    log.debug("Found target '{}'\tX Angle Offset: {}".format(target_label, horizontal_angle_offset))
-                    nt_tab.putNumber("tv", 1)
+                    # Pinhole camera model. See 254's 2016 vision talk
+                    horizontal_angle_radians = math.atan((target_x - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
+                    horizontal_angle_offset = math.degrees(horizontal_angle_radians)
+                    vertical_angle_radians = -math.atan((target_y - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(54.0) / 2))))
+                    vertical_angle_offset = math.degrees(vertical_angle_radians)
 
-                if abs(horizontal_angle_offset) > 40 and abs(vertical_angle_offset) > 30:
-                    log.debug("Target not valid for distance measurements")
-                    nt_tab.putNumber("tg", 0)
-                else:
-                    nt_tab.putNumber("tg", 1)
+                    if abs(horizontal_angle_offset) > 40:
+                        log.debug("Invalid angle offset. Setting it to 0")
+                        nt_tab.putNumber("tv", 0)
+                        horizontal_angle_offset = 0
+                    else:
+                        log.debug("Found target '{}'\tX Angle Offset: {}".format(self.goal_labels[bbox['label']], horizontal_angle_offset))
+                        # nt_tab.putNumber("tv", 1 if self.goal_labels[bbox['label']] == 'upper_hub' else 2)
 
-                nt_tab.putString("target_label", target_label)
-                nt_tab.putNumber("tx", horizontal_angle_offset)
-                nt_tab.putNumber("ty", vertical_angle_offset)
-                nt_tab.putNumber("tz", bbox['depth_z'])
-                nt_tab.putNumber("timestamp", metadata['timestamp'].total_seconds())
-                NetworkTables.flush()
+                    if abs(horizontal_angle_offset) > 40 and abs(vertical_angle_offset) > 30:
+                        log.debug("Target not valid for distance measurements")
+                        nt_tab.putNumber("tg", 0)
+                    else:
+                        nt_tab.putNumber("tg", 1)
 
-                # cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                #               (255, 255, 255), 2)
-                cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
-                              (0, 255, 0), 2)
+                    color = (128, 128, 128)
+                    if i == 0:
+                        nt_tab.putString("target_label", self.goal_labels[bbox['label']])
+                        nt_tab.putNumber("tx", horizontal_angle_offset)
+                        nt_tab.putNumber("ty", vertical_angle_offset)
+                        nt_tab.putNumber("tz", bbox['depth_z'])
+                        nt_tab.putNumber("timestamp", metadata['timestamp'].total_seconds())
+                        NetworkTables.flush()
+                        color = (0, 255, 0)
 
-                # cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
-                #            thickness=-1)
+                    # cv2.rectangle(edgeFrame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']),
+                    #               (255, 255, 255), 2)
 
-                # bbox['target_x'] = target_x
-                # bbox['target_y'] = target_y
-                bbox['h_angle'] = horizontal_angle_offset
-                bbox['v_angle'] = vertical_angle_offset
+                    cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), color, 2)
 
-                if args.demo:
-                    label_frame(frame, bbox)
+                    # cv2.circle(edgeFrame, (int(round(target_x, 0)), int(round(target_y, 0))), radius=5, color=(128, 128, 128),
+                    #            thickness=-1)
+
+                    # bbox['target_x'] = target_x
+                    # bbox['target_y'] = target_y
+                    bbox['h_angle'] = horizontal_angle_offset
+                    bbox['v_angle'] = vertical_angle_offset
+
+                    if args.demo:
+                        label_frame(frame, bbox)
 
         fps = self.device_info['fps_handler']
         fps.nextIter()
@@ -172,7 +181,7 @@ class GoalHost:
         # output_frame = frame[91:324, 0:NN_IMG_SIZE]
         self.oak_d_stream.send_frame(frame)
 
-        return frame, bboxes, metadata
+        return frame, filtered_bboxes, metadata
 
     def init_networktables(self):
         NetworkTables.startClientTeam(4201)
@@ -245,8 +254,7 @@ class GoalHostDebug(GoalHost):
 
     def parse_goal_frame(self, frame, bboxes, metadata):
         frame, bboxes, metadata = super().parse_goal_frame(frame, bboxes, metadata)
-        valid_labels = ['upper_hub']
-        # valid_labels = ['lower_hub']
+        valid_labels = ['upper_hub', 'lower_hub']
 
         for bbox in bboxes:
             target_label = self.goal_labels[bbox['label']]

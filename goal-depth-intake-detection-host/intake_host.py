@@ -104,7 +104,9 @@ class IntakeHost:
 
         if len(filtered_bboxes) == 0:
             nt_tab.putNumber("tv", 0)
-            nt_tab.putNumberArray("ta", [0])
+            nt_tab.putNumberArray("tx", [0])
+            nt_tab.putNumberArray("ty", [0])
+            nt_tab.putNumberArray("tz", [0])
         else:
             nt_tab.putNumber("tv", 1)
 
@@ -119,12 +121,15 @@ class IntakeHost:
                     filtered_bboxes.insert(0, filtered_bboxes.pop(filtered_bboxes.index(i)))
                     break
 
-        target_angles = []
+        target_x_angles = []
+        target_y_angles = []
         target_distances = []
         for bbox in filtered_bboxes:
             # Pinhole camera model. See 254's 2016 vision talk
             horizontal_angle_radians = math.atan((bbox['x_mid'] - (NN_IMG_SIZE / 2.0)) / (NN_IMG_SIZE / (2 * math.tan(math.radians(69.0) / 2))))
             horizontal_angle_offset = math.degrees(horizontal_angle_radians)
+            vertical_angle_radians = -math.atan((bbox['y_mid'] - (NN_IMG_SIZE / 2.0)) / (234 / (2 * math.tan(math.radians(54.0) / 2))))
+            vertical_angle_offset = math.degrees(vertical_angle_radians)
 
             cv2.rectangle(frame, (bbox['x_min'], bbox['y_min']), (bbox['x_max'], bbox['y_max']), (0, 255, 0), 2)
 
@@ -134,11 +139,14 @@ class IntakeHost:
                 cv2.putText(frame, "{}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
                             cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
-            target_angles.append(horizontal_angle_offset)
+            target_x_angles.append(horizontal_angle_offset)
+            target_y_angles.append(vertical_angle_offset)
             target_distances.append(bbox['depth_z'])
-            bbox['angle_offset'] = horizontal_angle_offset
+            bbox['x_angle_offset'] = horizontal_angle_offset
+            bbox['y_angle_offset'] = vertical_angle_offset
 
-        nt_tab.putNumberArray("ta", target_angles)
+        nt_tab.putNumberArray("tx", target_x_angles)
+        nt_tab.putNumberArray("ty", target_y_angles)
         nt_tab.putNumberArray("tz", target_distances)
 
         for bbox in null_bboxes:
@@ -257,7 +265,8 @@ class IntakeHostDebug(IntakeHost):
         frame, bboxes, counters = super().parse_intake_frame(frame, bboxes, counters)
 
         for i, bbox in enumerate(bboxes):
-            angle_offset = bbox['angle_offset'] if 'angle_offset' in bbox else 0
+            x_angle_offset = bbox['x_angle_offset'] if 'x_angle_offset' in bbox else 0
+            y_angle_offset = bbox['y_angle_offset'] if 'y_angle_offset' in bbox else 0
 
             frame_color = (0, 255, 0) if i == 0 else (0, 150, 150)
 
@@ -265,17 +274,15 @@ class IntakeHostDebug(IntakeHost):
             cv2.putText(frame, "label: {}".format(self.intake_labels[bbox['label']]),
                         (bbox['x_min'], bbox['y_min'] + 30),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "x: {}".format(round(bbox['x_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 50),
+            cv2.putText(frame, "x_angle: {}".format(round(x_angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 50),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "y: {}".format(round(bbox['y_mid'], 2)), (bbox['x_min'], bbox['y_min'] + 70),
+            cv2.putText(frame, "y_angle: {}".format(round(y_angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 70),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "angle: {}".format(round(angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 90),
+            cv2.putText(frame, "depth: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "depth: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 110),
+            cv2.putText(frame, "size: {}".format(round(bbox['size'], 3)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "size: {}".format(round(bbox['size'], 3)), (bbox['x_min'], bbox['y_min'] + 130),
-                        cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 150),
+            cv2.putText(frame, "conf: {}".format(round(bbox['confidence'], 2)), (bbox['x_min'], bbox['y_min'] + 130),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
 
         # cv2.imshow("OAK-1 Intake Edge", edgeFrame)
