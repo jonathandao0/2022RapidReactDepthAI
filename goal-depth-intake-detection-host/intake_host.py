@@ -52,7 +52,8 @@ class IntakeHost:
             'valid_ids': ["14442C10C14F47D700",
                           "14442C1011043ED700",
                           "184430105169091300",
-                          "14442C10218CCCD200"],
+                          "14442C10218CCCD200",
+                          "18443010B1FA0C1300"],
             'id': None,
             'fps_handler': FPSHandler(),
             'nt_tab': NetworkTables.getTable("OAK-1_Intake")
@@ -278,7 +279,7 @@ class IntakeHostDebug(IntakeHost):
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "y_angle: {}".format(round(y_angle_offset, 3)), (bbox['x_min'], bbox['y_min'] + 70),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
-            cv2.putText(frame, "depth: {}".format(round(bbox['depth_z'], 2)), (bbox['x_min'], bbox['y_min'] + 90),
+            cv2.putText(frame, "depth: {}".format(round(bbox['depth_z'] * 39.37, 2)), (bbox['x_min'], bbox['y_min'] + 90),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))
             cv2.putText(frame, "size: {}".format(round(bbox['size'], 3)), (bbox['x_min'], bbox['y_min'] + 110),
                         cv2.FONT_HERSHEY_TRIPLEX, 0.5, (255, 255, 255))

@@ -7,6 +7,7 @@ import imutils
 import numpy as np
 
 from common.config import *
+from common.HostSpatials import HostSpatialsCalc
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ def create_pipeline(model_name):
     # rgbControl = pipeline.createXLinkIn()
     # xinRgb = pipeline.createXLinkIn()
     xoutNN = pipeline.createXLinkOut()
+    xoutDepth = pipeline.createXLinkOut()
     # xoutEdgeRgb = pipeline.createXLinkOut()
     # xoutEdge = pipeline.createXLinkOut()
     # xinEdgeCfg = pipeline.createXLinkIn()
@@ -44,6 +46,7 @@ def create_pipeline(model_name):
     # xinRgb.setStreamName("rgbCfg")
     # rgbControl.setStreamName('rgbControl')
     xoutNN.setStreamName("detections")
+    xoutDepth.setStreamName("depth")
     # xoutEdgeRgb.setStreamName("edgeRgb")
     # xinEdgeCfg.setStreamName("edgeCfg")
     # xoutEdge.setStreamName("edge")
@@ -67,9 +70,9 @@ def create_pipeline(model_name):
     # camRgb.initialControl.setManualWhiteBalance(4000)
     # camRgb.initialControl.setBrightness(-2)
 
-    monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
+    monoLeft.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
     monoLeft.setBoardSocket(dai.CameraBoardSocket.LEFT)
-    monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_720_P)
+    monoRight.setResolution(dai.MonoCameraProperties.SensorResolution.THE_400_P)
     monoRight.setBoardSocket(dai.CameraBoardSocket.RIGHT)
 
     # Setting node configs
@@ -78,7 +81,8 @@ def create_pipeline(model_name):
     stereo.setConfidenceThreshold(255)
     stereo.setRectifyEdgeFillColor(0)  # Black, to better see the cutout
     stereo.setMedianFilter(dai.StereoDepthProperties.MedianFilter.KERNEL_7x7)  # KERNEL_7x7 default
-    # stereo.setLeftRightCheck(lrcheck)
+
+    stereo.setLeftRightCheck(True)
     # stereo.setExtendedDisparity(extended)
     # stereo.setSubpixel(subpixel)
 
@@ -109,7 +113,7 @@ def create_pipeline(model_name):
     detectionNetwork.setIouThreshold(nn_config.metadata["iou_threshold"])
     detectionNetwork.setNumInferenceThreads(2)
     detectionNetwork.input.setBlocking(False)
-
+    detectionNetwork.setSpatialCalculationAlgorithm(dai.SpatialLocationCalculatorAlgorithm.AVERAGE)
     # Linking
     # camRgb.preview.link(detectionNetwork.input)
     # detectionNetwork.passthrough.link(xoutRgb.input)
@@ -129,6 +133,7 @@ def create_pipeline(model_name):
     monoLeft.out.link(stereo.left)
     monoRight.out.link(stereo.right)
     stereo.depth.link(detectionNetwork.inputDepth)
+    stereo.depth.link(xoutDepth.input)
 
     # objectTracker.out.link(script.inputs['tracklets'])
     # script.outputs['out'].link(trackerOut.input)
@@ -155,6 +160,7 @@ def capture(device_info):
     with dai.Device(pipeline, device_info) as device:
         rqbQueue = device.getOutputQueue(name="rgb", maxSize=1, blocking=False)
         detectionNNQueue = device.getOutputQueue(name="detections", maxSize=1, blocking=False)
+        depthQueue = device.getOutputQueue(name="depth", maxSize=1, blocking=False)
         # # edgeRgbQueue = device.getOutputQueue("edgeRgb", 1, False)
         # edgeQueue = device.getOutputQueue("edge", 8, False)
         # edgeCfgQueue = device.getInputQueue("edgeCfg")
@@ -162,6 +168,8 @@ def capture(device_info):
 
         # controlQueue = device.getInputQueue('rgbControl')
         # configQueue = device.getInputQueue('rgbCfg')
+
+        hostSpatials = HostSpatialsCalc(device)
 
         counters = {
             'upper_hub': 0,
@@ -184,7 +192,9 @@ def capture(device_info):
                 if inDet is not None:
                     detections = inDet.detections
             except:
-                log.error("Unable to get detecions")
+                log.error("Unable to get detections")
+
+            depthFrame = depthQueue.get().getFrame()
 
             # if outQueue.has():
             #     jsonText = str(outQueue.get().getData(), 'utf-8')
@@ -194,9 +204,16 @@ def capture(device_info):
             # frame = imutils.resize(frame, int(1920 / 4), int(1080 / 4), inter=cv2.INTER_LINEAR)
             # frame = frame[54:324, 0:NN_IMG_SIZE]
             x_offset = int((frame.shape[1] - frame.shape[0]) / 2.0)
+            x_offsetD = int((depthFrame.shape[1] - depthFrame.shape[0]) / 2.0)
             y_offset = 0
             for detection in detections:
                 (xmin, ymin, xmax, ymax) = normalize_detections(frame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
+
+                (xminD, yminD, xmaxD, ymaxD) = normalize_detections(depthFrame, (detection.xmin, detection.ymin, detection.xmax, detection.ymax))
+                roi = (int(((xmaxD - xminD) / 2 + xminD)) + x_offsetD, int(((ymaxD - yminD) / 2 + yminD)))
+                # roi = (208, 208)
+
+                spatials, centroid = hostSpatials.calc_spatials(depthFrame, roi)
 
                 bboxes.append({
                     'id': uuid.uuid4(),
@@ -209,9 +226,12 @@ def capture(device_info):
                     'y_mid': int(((ymax - ymin) / 2 + ymin)),
                     'y_max': ymax,
                     'size': (ymax - ymin) * (xmax - xmin),
-                    'depth_x': detection.spatialCoordinates.x / 1000,
-                    'depth_y': detection.spatialCoordinates.y / 1000,
-                    'depth_z': detection.spatialCoordinates.z / 1000,
+                    # 'depth_x': detection.spatialCoordinates.x / 1000,
+                    # 'depth_y': detection.spatialCoordinates.y / 1000,
+                    # 'depth_z': detection.spatialCoordinates.z / 1000,
+                    'depth_x': spatials['x'] / 1000,
+                    'depth_y': spatials['y'] / 1000,
+                    'depth_z': spatials['z'] / 1000,
                 })
 
             yield frame, bboxes, counters
