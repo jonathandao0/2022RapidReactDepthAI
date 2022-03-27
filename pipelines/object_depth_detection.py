@@ -194,7 +194,11 @@ def capture(device_info):
             except:
                 log.error("Unable to get detections")
 
-            depthFrame = depthQueue.get().getFrame()
+            depthFrame = []
+            try:
+                depthFrame = depthQueue.get().getFrame()
+            except:
+                log.error("Unable to get depth")
 
             # if outQueue.has():
             #     jsonText = str(outQueue.get().getData(), 'utf-8')
@@ -219,9 +223,9 @@ def capture(device_info):
                     'id': uuid.uuid4(),
                     'label': detection.label,
                     'confidence': detection.confidence,
-                    'x_min': xmin + x_offset,
-                    'x_mid': int(((xmax - xmin) / 2 + xmin)) + x_offset,
-                    'x_max': xmax + x_offset,
+                    'x_min': xmin,
+                    'x_mid': int(((xmax - xmin) / 2 + xmin)),
+                    'x_max': xmax,
                     'y_min': ymin,
                     'y_mid': int(((ymax - ymin) / 2 + ymin)),
                     'y_max': ymax,

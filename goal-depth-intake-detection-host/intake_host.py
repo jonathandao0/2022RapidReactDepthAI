@@ -187,6 +187,8 @@ class IntakeHost:
         fps.nextIter()
         cv2.putText(frame, "{:.2f}".format(fps.fps()), (0, 110), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255))
 
+        # cv2.line(frame, (208, 0), (208, NN_IMG_SIZE), (0, 0, 0), 1)
+
         # output_frame = frame[54:324, 0:NN_IMG_SIZE]
         output_frame = frame[91:324, 0:NN_IMG_SIZE]
         self.oak_1_stream.send_frame(output_frame)
